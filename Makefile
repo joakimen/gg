@@ -48,4 +48,4 @@ run: fmt vet
 bump-tag:
 	@command -v svu >/dev/null 2>&1 || { echo >&2 "svu is not installed. Aborting."; exit 1; }
 	@next_tag=$$(svu next) && git tag $$next_tag
-	git push --tags
+	git push && git push --tags
