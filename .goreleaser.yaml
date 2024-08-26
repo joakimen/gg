@@ -4,7 +4,8 @@ before:
     - go mod tidy
     - git diff --exit-code go.mod go.sum
 builds:
-  - env:
+  - main: ./cmd/clone
+    env:
       - CGO_ENABLED=0
     goos:
       - linux
