@@ -125,9 +125,16 @@ func run(w io.Writer, args []string) error {
 			},
 		}
 	} else {
+
 		logger.Info("searching for repos", "owner", cfg.Owner, "repo", cfg.Repo, "includeArchived", cfg.IncludeArchived, "limit", cfg.Limit)
-		var err error
-		repos, err = github.ListRepos(cfg.Owner, cfg.Repo, cfg.IncludeArchived, cfg.Limit)
+
+		repoSearchArgs, err := github.BuildGhSearchArgs(cfg.Owner, cfg.Repo, cfg.IncludeArchived, cfg.Limit)
+		if err != nil {
+			return err
+		}
+
+		logger.Info("repo search args", "args", append([]string{"gh"}, repoSearchArgs...))
+		repos, err = github.ListRepos(repoSearchArgs)
 		if err != nil {
 			return err
 		}
@@ -147,36 +154,36 @@ func run(w io.Writer, args []string) error {
 		}
 	}
 
-	fmt.Fprintf(w, "%s\n", "cloning repos:")
+	fmt.Fprintf(w, "cloning repos to %s:\n", cfg.CloneDir)
 	for _, repo := range selectedRepos {
 		fmt.Fprintf(w, "- %s\n", repo.NameWithOwner())
 	}
 
-	type Result struct {
+	type CloneResult struct {
 		repo github.Repo
 		err  error
 	}
-	resultChan := make(chan Result, len(selectedRepos))
+
+	cloneResultChan := make(chan CloneResult, len(selectedRepos))
 	for _, repo := range selectedRepos {
 		go func(r github.Repo) {
 			err := github.Clone(cfg.CloneDir, r)
 			if err != nil {
-				resultChan <- Result{repo: r, err: err}
+				cloneResultChan <- CloneResult{repo: r, err: err}
 				return
 			}
-			resultChan <- Result{repo: r, err: nil}
+			cloneResultChan <- CloneResult{repo: r, err: nil}
 		}(repo)
 	}
 
-	// receive clone results from result channel
-	var errorResults []Result
+	var errorResults []CloneResult
 	for i := 0; i < len(selectedRepos); i++ {
-		result := <-resultChan
+		result := <-cloneResultChan
 		if result.err != nil {
 			errorResults = append(errorResults, result)
 		}
 	}
-	close(resultChan)
+	close(cloneResultChan)
 
 	fmt.Fprintf(w, "\n")
 	if len(errorResults) > 0 {

@@ -1,3 +1,4 @@
+// Package github provides functions to interact with GitHub using the gh CLI tool.
 package github
 
 import (
@@ -7,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 )
 
 type Repo struct {
@@ -26,6 +26,7 @@ type SearchResp struct {
 	} `json:"owner"`
 }
 
+// BuildGhSearchArgs builds an appropriate gh command to search for repos based on the provided parameters
 func BuildGhSearchArgs(owner string, repo string, includeArchived bool, limit int) ([]string, error) {
 	if owner != "" && repo != "" {
 		return nil, fmt.Errorf("owner, repo or both must be empty to initiate a search")
@@ -55,17 +56,10 @@ func BuildGhSearchArgs(owner string, repo string, includeArchived bool, limit in
 	return args, nil
 }
 
-func ListRepos(owner string, repo string, includeArchived bool, limit int) ([]Repo, error) {
+// ListRepos searches for repos using gh based on the provided search arguments
+func ListRepos(repoSearchArgs []string) ([]Repo, error) {
 
-	ghSearchArgs, err := BuildGhSearchArgs(owner, repo, includeArchived, limit)
-
-	if err != nil {
-		return nil, err
-	}
-
-	fmt.Println("searchArgs:", strings.Join(append([]string{"gh"}, ghSearchArgs...)[:], " "))
-
-	ghRepoResp, _, err := gh.Exec(ghSearchArgs...)
+	ghRepoResp, _, err := gh.Exec(repoSearchArgs...)
 	if err != nil {
 		return nil, err
 	}
