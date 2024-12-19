@@ -1,0 +1,8 @@
+{
+  "extends": ["config:base"],
+  "major": {
+    "automerge": false
+  },
+  "prCreation": "not-pending",
+  "minimumReleaseAge": "3 days",
+}
