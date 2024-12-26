@@ -25,8 +25,10 @@ jobs:
           version: v1.60
 
   release:
-    runs-on: ubuntu-latest
+    needs:
+      - build
     if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
     steps:
       - name: release (tags)
         uses: goreleaser/goreleaser-action@v6
