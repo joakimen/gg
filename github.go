@@ -1,5 +1,5 @@
 // Package github provides functions to interact with GitHub using the gh CLI tool.
-package github
+package main
 
 import (
 	"bytes"
@@ -38,11 +38,13 @@ func gh(args ...string) (stdOut, stdErr bytes.Buffer, err error) {
 	cmd := exec.Command(path, args...)
 	cmd.Stdout = &stdOut
 	cmd.Stderr = &stdErr
+
 	err = cmd.Run()
 	if err != nil {
 		err = fmt.Errorf("failed to run gh: %s. error: %w", stdErr.String(), err)
 		return
 	}
+
 	return
 }
 
@@ -98,7 +100,7 @@ func ListRepos(repoSearchArgs []string) ([]Repo, error) {
 	return repos, nil
 }
 
-func Clone(cloneDir string, repo Repo) error {
+func clone(cloneDir string, repo Repo) error {
 	repoAbsPath := filepath.Join(cloneDir, repo.Owner, repo.Name)
 	if _, err := os.Stat(repoAbsPath); !os.IsNotExist(err) {
 		return fmt.Errorf("repo already exists")

@@ -1,13 +1,12 @@
 // Package fuzzy provides fuzzy selection functionality for github.Repo
-package fuzzy
+package main
 
 import (
-	"github.com/joakimen/clone/pkg/github"
 	fz "github.com/ktr0731/go-fuzzyfinder"
 )
 
-// SelectRepos Provides fuzzy multi-selection from a slice of [github.Repo]
-func SelectRepos(repos []github.Repo) ([]github.Repo, error) {
+// SelectRepos Provides fuzzy multi-selection from a slice of [Repo]
+func SelectRepos(repos []Repo) ([]Repo, error) {
 	renderFunc := func(selectedIndex int) string {
 		return repos[selectedIndex].NameWithOwner()
 	}
@@ -16,7 +15,7 @@ func SelectRepos(repos []github.Repo) ([]github.Repo, error) {
 		return nil, err
 	}
 
-	var selectedRepos []github.Repo
+	var selectedRepos []Repo
 	for _, idx := range indices {
 		selectedRepos = append(selectedRepos, repos[idx])
 	}

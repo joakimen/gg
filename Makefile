@@ -8,7 +8,6 @@ SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
 BIN=./bin/clone
-MAINPKG = ./cmd/clone
 
 .PHONY: all
 all: build
@@ -39,11 +38,11 @@ lint-fix:
 
 .PHONY: build
 build: fmt vet
-	go build -o $(BIN) $(MAINPKG)
+	go build -o $(BIN) .
 
 .PHONY: run
 run: fmt vet
-	@go run $(MAINPKG)
+	@go run .
 
 bump-tag:
 	@command -v svu >/dev/null 2>&1 || { echo >&2 "svu is not installed. Aborting."; exit 1; }
