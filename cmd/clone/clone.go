@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	if err := run(os.Stdout, os.Args); err != nil {
+	if err := run(os.Stdout); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}
@@ -100,7 +100,7 @@ func configureLogger(w io.Writer, cfg Config) *slog.Logger {
 	return logger
 }
 
-func run(w io.Writer, args []string) error {
+func run(w io.Writer) error {
 
 	cfg, err := loadConfig()
 	if err != nil {

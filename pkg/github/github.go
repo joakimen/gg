@@ -2,10 +2,11 @@
 package github
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/cli/go-gh"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 )
@@ -24,6 +25,25 @@ type SearchResp struct {
 	Owner struct {
 		Login string `json:"login"`
 	} `json:"owner"`
+}
+
+func gh(args ...string) (stdOut, stdErr bytes.Buffer, err error) {
+
+	path, err := exec.LookPath("gh")
+	if err != nil {
+		err = fmt.Errorf("could not find gh executable in PATH. error: %w", err)
+		return
+	}
+
+	cmd := exec.Command(path, args...)
+	cmd.Stdout = &stdOut
+	cmd.Stderr = &stdErr
+	err = cmd.Run()
+	if err != nil {
+		err = fmt.Errorf("failed to run gh: %s. error: %w", stdErr.String(), err)
+		return
+	}
+	return
 }
 
 // BuildGhSearchArgs builds an appropriate gh command to search for repos based on the provided parameters
@@ -59,7 +79,7 @@ func BuildGhSearchArgs(owner string, repo string, includeArchived bool, limit in
 // ListRepos searches for repos using gh based on the provided search arguments
 func ListRepos(repoSearchArgs []string) ([]Repo, error) {
 
-	ghRepoResp, _, err := gh.Exec(repoSearchArgs...)
+	ghRepoResp, _, err := gh(repoSearchArgs...)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +104,7 @@ func Clone(cloneDir string, repo Repo) error {
 		return fmt.Errorf("repo already exists")
 	}
 
-	_, _, err := gh.Exec("repo", "clone", repo.NameWithOwner(), repoAbsPath)
+	_, _, err := gh("repo", "clone", repo.NameWithOwner(), repoAbsPath)
 	if err != nil {
 		return err
 	}
