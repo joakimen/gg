@@ -23,8 +23,8 @@ func run(w io.Writer) error {
 	logger := ConfigureLogger(w, cfg)
 	logger.Info("done merging config", "config", cfg)
 
-	if err := dirExists(err, cfg); err != nil {
-		return err
+	if err := dirExists(cfg.CloneDir); err != nil {
+		return fmt.Errorf("clone directory does not exist: %w", err)
 	}
 
 	var repos []Repo
@@ -40,13 +40,13 @@ func run(w io.Writer) error {
 		logger.Info("searching for repos", "owner", cfg.Owner, "repo", cfg.Repo, "includeArchived", cfg.IncludeArchived, "limit", cfg.Limit)
 		repoSearchArgs, err := BuildGhSearchArgs(cfg.Owner, cfg.Repo, cfg.IncludeArchived, cfg.Limit)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to build gh search args: %w", err)
 		}
 
 		logger.Info("repo search args", "args", append([]string{"gh"}, repoSearchArgs...))
 		repos, err = ListRepos(repoSearchArgs)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to list repos: %w", err)
 		}
 		logger.Info("repo search complete", "count", (len(repos)))
 		logger.Debug("search returned repos", "repos", repos)
@@ -60,7 +60,7 @@ func run(w io.Writer) error {
 		var err error
 		selectedRepos, err = SelectRepos(repos)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to select repos: %w", err)
 		}
 	}
 
