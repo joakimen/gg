@@ -107,10 +107,10 @@ func run(w io.Writer) error {
 	return nil
 }
 
-func dirExists(err error, cfg Config) error {
-	info, err := os.Stat(cfg.CloneDir)
+func dirExists(path string) error {
+	info, err := os.Stat(path)
 	if os.IsNotExist(err) || !info.IsDir() {
-		return fmt.Errorf("the specified clone directory does not exist: %s", cfg.CloneDir)
+		return fmt.Errorf("dir doesn't exist: %s, %w", path, err)
 	}
 	return nil
 }
