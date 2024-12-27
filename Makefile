@@ -37,7 +37,7 @@ lint-fix:
 	golangci-lint run --fix ./...
 
 .PHONY: build
-build: fmt vet
+build: fmt lint vet
 	go build -o $(BIN) .
 
 .PHONY: run
