@@ -8,6 +8,7 @@ SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
 BIN=./bin/clone
+MAINPRG=./cmd/clone
 
 .PHONY: all
 all: build
@@ -38,7 +39,7 @@ lint-fix:
 
 .PHONY: build
 build: fmt lint vet
-	go build -o $(BIN) .
+	go build -o $(BIN) $(MAINPRG)
 
 .PHONY: run
 run: fmt vet
