@@ -51,7 +51,7 @@ func BuildGhSearchArgs(owner string, repo string, includeArchived bool, limit in
 }
 
 // ListRepos searches for repos using gh based on the provided search arguments
-func ListRepos(repoSearchArgs []string) ([]clone.Repo, error) {
+func ListRepos(repoSearchArgs []string) (clone.Repos, error) {
 
 	repoJsonData, err := gh(repoSearchArgs...)
 	if err != nil {
@@ -63,7 +63,7 @@ func ListRepos(repoSearchArgs []string) ([]clone.Repo, error) {
 		return nil, err
 	}
 
-	var repos []clone.Repo
+	var repos clone.Repos
 	for _, repoResp := range searchResults {
 		repos = append(repos, clone.Repo{Owner: repoResp.Owner.Login, Name: repoResp.Name})
 	}
@@ -77,5 +77,8 @@ func Clone(cloneDir string, repo clone.Repo) error {
 	}
 
 	_, err := gh("repo", "clone", repo.NameWithOwner(), repoAbsPath)
-	return err
+	if err != nil {
+		return fmt.Errorf("failed to clone repo: %w", err)
+	}
+	return nil
 }

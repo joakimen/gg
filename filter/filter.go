@@ -7,7 +7,7 @@ import (
 )
 
 // Select Provides fuzzy multi-selection from a slice of [clone.Repo]
-func Select(repos []clone.Repo) ([]clone.Repo, error) {
+func Select(repos clone.Repos) ([]clone.Repo, error) {
 	renderFunc := func(selectedIndex int) string {
 		return repos[selectedIndex].NameWithOwner()
 	}
@@ -16,7 +16,7 @@ func Select(repos []clone.Repo) ([]clone.Repo, error) {
 		return nil, err
 	}
 
-	var selectedRepos []clone.Repo
+	var selectedRepos clone.Repos
 	for _, idx := range indices {
 		selectedRepos = append(selectedRepos, repos[idx])
 	}

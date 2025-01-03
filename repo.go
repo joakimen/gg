@@ -7,10 +7,13 @@ type Repo struct {
 	Name  string
 }
 
+type Repos []Repo
+
 type RepoCloneResult struct {
 	Repo Repo
 	Err  error
 }
+type RepoCloneResults []RepoCloneResult
 
 type RepoSearchResult struct {
 	Name  string `json:"name"`

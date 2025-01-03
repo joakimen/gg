@@ -1,79 +1,105 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/joakimen/clone"
 	"github.com/joakimen/clone/config"
 	"github.com/joakimen/clone/exec"
 	"github.com/joakimen/clone/filter"
 	"github.com/joakimen/clone/github"
-	"github.com/joakimen/clone/log"
 	"io"
 	"os"
 )
 
 func main() {
-	if err := run(os.Stdout); err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err)
+	writer := os.Stderr
+	if err := run(writer); err != nil {
+		fmt.Fprintf(writer, "%s\n", err)
 		os.Exit(1)
 	}
 
 }
 
-func run(w io.Writer) error {
+func run(writer io.Writer) error {
 
 	cfg, err := config.Load()
 	if err != nil {
-		return fmt.Errorf("failed to load config: %w", err)
+		return fmt.Errorf("failed to load config: %stdout", err)
 	}
 
-	logger := log.ConfigureLogger(w, cfg)
-	logger.Info("done merging config", "config", cfg)
+	info := func(args ...interface{}) {
+		fmt.Fprintln(writer, args...)
+	}
 
+	debug := func(args ...interface{}) {
+		if cfg.Verbose {
+			fmt.Fprintln(writer, args...)
+		}
+	}
+
+	debug("loaded config", cfg)
 	if err := exec.DirExists(cfg.CloneDir); err != nil {
-		return fmt.Errorf("clone directory does not exist: %w", err)
+		return fmt.Errorf("clone directory does not exist: %stdout", err)
 	}
 
-	var repos []clone.Repo
-	if cfg.Owner != "" && cfg.Repo != "" {
-		logger.Debug("both owner and repo was specified, not searching for repos")
-		repos = []clone.Repo{
-			{
+	var repos clone.Repos
+
+	if cfg.RepoFile != "" {
+		debug("reading repos from file", "file", cfg.RepoFile)
+		repoJsonData, err := os.ReadFile(cfg.RepoFile)
+		if err != nil {
+			return fmt.Errorf("failed to read repo file: %stdout", err)
+		}
+
+		if err = json.Unmarshal(repoJsonData, &repos); err != nil {
+			return fmt.Errorf("failed to unmarshal repo file: %stdout", err)
+		}
+	} else if cfg.Owner != "" && cfg.Repo != "" {
+		debug("both owner and repo was specified, not searching for repos")
+		repos = clone.Repos{
+			clone.Repo{
 				Owner: cfg.Owner,
 				Name:  cfg.Repo,
 			},
 		}
 	} else {
-		logger.Info("searching for repos", "owner", cfg.Owner, "repo", cfg.Repo, "includeArchived", cfg.IncludeArchived, "limit", cfg.Limit)
+		debug("searching for repos", "owner", cfg.Owner, "repo", cfg.Repo, "includeArchived", cfg.IncludeArchived, "limit", cfg.Limit)
 		repoSearchArgs, err := github.BuildGhSearchArgs(cfg.Owner, cfg.Repo, cfg.IncludeArchived, cfg.Limit)
 		if err != nil {
-			return fmt.Errorf("failed to build gh search args: %w", err)
+			return fmt.Errorf("failed to build gh search args: %stdout", err)
 		}
 
-		logger.Info("repo search args", "args", append([]string{"gh"}, repoSearchArgs...))
+		debug("repo search args", "args", append([]string{"gh"}, repoSearchArgs...))
 		repos, err = github.ListRepos(repoSearchArgs)
 		if err != nil {
-			return fmt.Errorf("failed to list repos: %w", err)
+			return fmt.Errorf("failed to list repos: %stdout", err)
 		}
-		logger.Info("repo search complete", "count", (len(repos)))
-		logger.Debug("search returned repos", "repos", repos)
+		debug("repo search complete", "count", len(repos))
+		debug("search returned repos", "repos", repos)
 	}
 
-	var selectedRepos []clone.Repo
-	if len(repos) == 1 {
+	var selectedRepos clone.Repos
+
+	debug("repo count:", len(repos))
+	switch len(repos) {
+	case 0:
+		debug("no repos found")
+		return nil
+	case 1:
+		debug("cloning the specified owner/repo combination")
 		selectedRepos = repos
-	} else {
-		logger.Info("filtering repos")
-		var err error
+	default:
+		debug("filtering repos")
 		selectedRepos, err = filter.Select(repos)
 		if err != nil {
-			return fmt.Errorf("failed to select repos: %w", err)
+			return fmt.Errorf("failed to select repos: %stdout", err)
 		}
 	}
 
-	fmt.Fprintf(w, "cloning repos to %s:\n", cfg.CloneDir)
+	info("cloning repos to:", cfg.CloneDir)
 	for _, repo := range selectedRepos {
-		fmt.Fprintf(w, "- %s\n", repo.NameWithOwner())
+		info("-", repo.NameWithOwner())
 	}
 
 	cloneResultChan := make(chan clone.RepoCloneResult, len(selectedRepos))
@@ -88,7 +114,7 @@ func run(w io.Writer) error {
 		}(repo)
 	}
 
-	var errorResults []clone.RepoCloneResult
+	var errorResults clone.RepoCloneResults
 	for i := 0; i < len(selectedRepos); i++ {
 		result := <-cloneResultChan
 		if result.Err != nil {
@@ -97,14 +123,12 @@ func run(w io.Writer) error {
 	}
 	close(cloneResultChan)
 
-	fmt.Fprintf(w, "\n")
 	if len(errorResults) > 0 {
-		fmt.Fprintf(w, "some repos failed to clone:\n")
 		for _, result := range errorResults {
-			fmt.Fprintf(w, "- %s: %v\n", result.Repo.NameWithOwner(), result.Err)
+			info(result.Repo.NameWithOwner()+":", result.Err)
 		}
 	} else {
-		fmt.Fprintf(w, "all repos cloned successfully!\n")
+		info("all repos cloned successfully!")
 	}
 	return nil
 }
