@@ -38,7 +38,7 @@ func BuildGhSearchArgs(owner string, repo string, includeArchived bool, limit in
 		if includeArchived {
 			args = []string{"search", "repos", repo, "--match", "name", "--json", "name,owner", "--limit", limitStr}
 		} else {
-			args = []string{"search", "repos", repo, "--match", "name", "--json", "name,owner", "--archived", "false", "--limit", limitStr}
+			args = []string{"search", "repos", repo, "--match", "name", "--json", "name,owner", "--limit", limitStr, "--archived=false"}
 		}
 	} else {
 		if includeArchived {
