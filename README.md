@@ -41,7 +41,3 @@ Authenticating to GitHub:
 ```bash
 gh auth login
 ```
-
-## Ideas for later
-
-- Add support for a config file that lets us specify a list of repositories to clone that we can share across machines
