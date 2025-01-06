@@ -1,46 +1,39 @@
 package github
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"github.com/joakimen/clone"
-	"github.com/joakimen/clone/exec"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 )
 
-func gh(args ...string) (string, error) {
-
-	stdout, _, err := exec.Exec("gh", args...)
-	if err != nil {
-		return "", fmt.Errorf("failed to execute gh: %w", err)
-	}
-
-	return stdout.String(), nil
-}
-
-// BuildGhSearchArgs builds an appropriate gh command to search for repos based on the provided parameters
-func BuildGhSearchArgs(owner string, repo string, includeArchived bool, limit int) ([]string, error) {
+// BuildGhCommand builds an appropriate gh command to find repos.
+func BuildGhCommand(owner string, repo string, includeArchived bool, limit int) ([]string, error) {
 	if owner != "" && repo != "" {
-		return nil, fmt.Errorf("owner, repo or both must be empty to initiate a search")
+		return nil, errors.New("owner, repo or both must be empty to initiate a search")
 	}
 
 	limitStr := strconv.Itoa(limit)
 	var args []string
-	if owner != "" {
+	switch {
+	case owner != "":
 		if includeArchived {
 			args = []string{"repo", "list", owner, "--json", "name,owner", "--limit", limitStr}
 		} else {
 			args = []string{"repo", "list", owner, "--json", "name,owner", "--no-archived", "--limit", limitStr}
 		}
-	} else if repo != "" {
+	case repo != "":
 		if includeArchived {
 			args = []string{"search", "repos", repo, "--match", "name", "--json", "name,owner", "--limit", limitStr}
 		} else {
-			args = []string{"search", "repos", repo, "--match", "name", "--json", "name,owner", "--limit", limitStr, "--archived=false"}
+			args = []string{"search", "repos", repo, "--match", "name", "--json", "name,owner", "--limit", limitStr,
+				"--archived=false"}
 		}
-	} else {
+	default:
 		if includeArchived {
 			args = []string{"repo", "list", "--json", "name,owner", "--limit", limitStr}
 		} else {
@@ -50,35 +43,80 @@ func BuildGhSearchArgs(owner string, repo string, includeArchived bool, limit in
 	return args, nil
 }
 
-// ListRepos searches for repos using gh based on the provided search arguments
-func ListRepos(repoSearchArgs []string) (clone.Repos, error) {
-
-	repoJsonData, err := gh(repoSearchArgs...)
+// ListRepos searches for repos using Exec based on the provided search arguments.
+func ListRepos(repoSearchArgs []string) ([]Repo, error) {
+	repoJSONData, err := Exec(repoSearchArgs...)
 	if err != nil {
 		return nil, err
 	}
 
-	var searchResults clone.RepoSearchResults
-	if err = json.Unmarshal([]byte(repoJsonData), &searchResults); err != nil {
+	var searchResults []RepoSearchResult
+	if err = json.Unmarshal([]byte(repoJSONData), &searchResults); err != nil {
 		return nil, err
 	}
 
-	var repos clone.Repos
+	var repos []Repo
 	for _, repoResp := range searchResults {
-		repos = append(repos, clone.Repo{Owner: repoResp.Owner.Login, Name: repoResp.Name})
+		repos = append(repos, Repo{Owner: repoResp.Owner.Login, Name: repoResp.Name})
 	}
 	return repos, nil
 }
 
-func Clone(cloneDir string, repo clone.Repo) error {
+// Clone a single repo from GitHub to the specified cloneDir.
+func Clone(cloneDir string, repo Repo) error {
 	repoAbsPath := filepath.Join(cloneDir, repo.Owner, repo.Name)
 	if _, err := os.Stat(repoAbsPath); !os.IsNotExist(err) {
-		return fmt.Errorf("repo already exists")
+		return errors.New("repo already exists")
 	}
 
-	_, err := gh("repo", "clone", repo.NameWithOwner(), repoAbsPath)
+	_, err := Exec("repo", "clone", repo.NameWithOwner(), repoAbsPath)
 	if err != nil {
 		return fmt.Errorf("failed to clone repo: %w", err)
 	}
 	return nil
+}
+
+func Exec(args ...string) (string, error) {
+	path, err := exec.LookPath("gh")
+	if err != nil {
+		return "", fmt.Errorf("could not find gh executable in PATH. error: %w", err)
+	}
+
+	stdout := bytes.Buffer{}
+
+	cmd := exec.Command(path, args...)
+	cmd.Stdout = &stdout
+
+	err = cmd.Run()
+	if err != nil {
+		return "", fmt.Errorf("gh failed: %w", err)
+	}
+	return stdout.String(), nil
+}
+
+func Search(owner string, repo string, includeArchived bool, limit int) ([]Repo, error) {
+	var (
+		repos []Repo
+		err   error
+	)
+
+	repoSearchArgs, err := BuildGhCommand(owner, repo, includeArchived, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build gh search args: %w", err)
+	}
+
+	githubRepos, err := ListRepos(repoSearchArgs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list github repos: %w", err)
+	}
+
+	if len(githubRepos) == 0 {
+		return nil, errors.New("no github repos found with the provided search criteria")
+	}
+
+	repos, err = Select(githubRepos)
+	if err != nil {
+		return nil, fmt.Errorf("failed to filter repos: %w", err)
+	}
+	return repos, nil
 }
