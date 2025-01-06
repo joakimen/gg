@@ -17,6 +17,7 @@ $ clone
     -d  The directory to clone the repositories to
     -a  Include archived repositories in the search
     -l  The limit of repositories to search for
+    -f  The name of a file containing a list of repositories to clone
     -v  Verbose output
 ```
 
