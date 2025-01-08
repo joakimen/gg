@@ -12,12 +12,12 @@ Clones one or more repositories to the configured clone directory.
 $ clone 
 
     # Optional flags:
-    -o  The owner of the repositories to clone
-    -r  The name repositories to clone
-    -d  The directory to clone the repositories to
+    -o  Owner of the repositories to clone
+    -r  Name repository to clone
+    -d  Directory to clone the repositories to
     -a  Include archived repositories in the search
     -l  The limit of repositories to search for
-    -f  The name of a file containing a list of repositories to clone
+    -f  Name of a file containing a list of repositories to clone
     -v  Verbose output
 ```
 
@@ -34,7 +34,7 @@ clone -d ~/dev/github.com
 
 ## GitHub Authentication
 
-This script uses the `gh` CLI to clone repositories. You will need to authenticate with GitHub before using this script.
+This CLI uses the `gh` CLI to clone repositories. You will need to authenticate with GitHub before using this CLI.
 
 Authenticating to GitHub:
 
