@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 )
 
@@ -19,6 +20,8 @@ type Config struct {
 	CloneDir        string
 	Verbose         bool
 	RepoFile        string
+	InfoFn          func(...interface{})
+	DebugFn         func(...interface{})
 }
 
 type Flags struct {
@@ -35,7 +38,7 @@ type Envs struct {
 	CloneDir string
 }
 
-func Load() (Config, error) {
+func Load(args []string, outWriter io.Writer) (Config, error) {
 	// initialize cfg with defaults
 	cfg := Config{
 		Limit: DefaultRepoListLimit,
@@ -43,6 +46,7 @@ func Load() (Config, error) {
 
 	// parse flags
 	flags := Flags{}
+	fs := flag.NewFlagSet("clone", flag.ContinueOnError)
 	flag.StringVar(&flags.Owner, "o", cfg.Owner, "owner of the repository to clone")
 	flag.StringVar(&flags.Repo, "r", cfg.Repo, "name of the repository to clone")
 	flag.BoolVar(&flags.IncludeArchived, "a", cfg.IncludeArchived, "include archived repositories")
@@ -50,7 +54,9 @@ func Load() (Config, error) {
 	flag.StringVar(&flags.CloneDir, "d", cfg.CloneDir, "directory to clone the repositories into")
 	flag.StringVar(&flags.RepoFile, "f", cfg.RepoFile, "File containing the list of repositories to clone")
 	flag.BoolVar(&flags.Verbose, "v", cfg.Verbose, "verbose output")
-	flag.Parse()
+	if err := fs.Parse(args); err != nil {
+		return Config{}, err
+	}
 
 	// parse env vars
 	envs := Envs{
@@ -74,6 +80,17 @@ func Load() (Config, error) {
 		return Config{},
 			errors.New("clone directory not specified, set either the CLONE_DIR environment variable or use the -d flag")
 	}
+
+	cfg.InfoFn = func(args ...interface{}) {
+		fmt.Fprintln(outWriter, args...)
+	}
+
+	cfg.DebugFn = func(args ...interface{}) {
+		if cfg.Verbose {
+			fmt.Fprintln(outWriter, args...)
+		}
+	}
+
 	return cfg, nil
 }
 
