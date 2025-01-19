@@ -15,3 +15,12 @@ archives:
 
 changelog:
   sort: asc
+
+brews:
+  - name: clone
+    repository:
+      owner: joakimen
+      name: homebrew-tap
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
