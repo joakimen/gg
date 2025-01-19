@@ -19,6 +19,7 @@ changelog:
 
 brews:
   - name: clone
+    directory: Formula
     repository:
       owner: joakimen
       name: homebrew-tap
