@@ -42,7 +42,9 @@ Authenticating to GitHub:
 gh auth login
 ```
 
-## Git hooks
+## Development
+
+### Git hooks
 
 Git hooks are managed using [lefthook](https://github.com/evilmartians/lefthook).
 
