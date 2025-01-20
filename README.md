@@ -6,6 +6,20 @@ Clones one or more repositories to the configured clone directory.
 
 - [gh](https://cli.github.com/)
 
+## Installation
+
+### Homebrew
+
+```shell
+brew install joakimen/tap/clone
+```
+
+### Go
+
+```shell
+go install github.com/joakimen/clone/cmd/clone@latest
+```
+
 ## Usage
 
 ```shell
