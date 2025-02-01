@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -17,6 +18,7 @@ func BuildGhCommand(owner string, repo string, includeArchived bool, limit int) 
 		return nil, errors.New("owner, repo or both must be empty to initiate a search")
 	}
 
+	slog.Debug("parsing gh args", "owner", owner, "repo", repo, "includeArchived", includeArchived, "limit", limit)
 	limitStr := strconv.Itoa(limit)
 	var args []string
 	switch {
@@ -40,6 +42,8 @@ func BuildGhCommand(owner string, repo string, includeArchived bool, limit int) 
 			args = []string{"repo", "list", "--json", "name,owner", "--no-archived", "--limit", limitStr}
 		}
 	}
+
+	slog.Debug("done parsing gh args", "args", args)
 	return args, nil
 }
 

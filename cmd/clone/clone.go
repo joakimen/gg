@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/joakimen/clone/github"
@@ -11,18 +12,17 @@ import (
 type CloneCommand struct{}
 
 func (c *CloneCommand) Run(cfg Config) error {
-	info, debug := cfg.InfoFn, cfg.DebugFn
 	var err error
 	var repos []github.Repo
 	switch {
 	case cfg.RepoFile != "":
-		debug("reading repos from file:", cfg.RepoFile)
+		slog.Debug("reading repos from file:", "repoFile", cfg.RepoFile)
 		repos, err = readReposFromFile(cfg.RepoFile)
 		if err != nil {
 			return fmt.Errorf("failed to read repos from file: %w", err)
 		}
 	case cfg.Owner != "" && cfg.Repo != "":
-		debug("using r specified by owner and r flags")
+		slog.Debug("using r specified by owner and r flags")
 		repos = []github.Repo{
 			{
 				Owner: cfg.Owner,
@@ -30,7 +30,7 @@ func (c *CloneCommand) Run(cfg Config) error {
 			},
 		}
 	default:
-		debug("querying github for repos")
+		slog.Debug("querying github for repos")
 		repos, err = github.Search(cfg.Owner, cfg.Repo, cfg.IncludeArchived, cfg.Limit)
 		if err != nil {
 			return fmt.Errorf("failed to search for repos: %w", err)
@@ -38,15 +38,11 @@ func (c *CloneCommand) Run(cfg Config) error {
 	}
 
 	if len(repos) == 0 {
-		info("no repos selected, exiting")
+		slog.Debug("no repos selected, exiting")
 		return nil
 	}
 
-	info("cloning repos to:", cfg.CloneDir)
-	for _, r := range repos {
-		info("-", r.NameWithOwner())
-	}
-
+	slog.Debug("cloning repos", "cloneDir", cfg.CloneDir, "repos", repos)
 	resultChan := make(chan github.RepoCloneResult, len(repos))
 	for _, repo := range repos {
 		go func(r github.Repo) {
@@ -67,10 +63,10 @@ func (c *CloneCommand) Run(cfg Config) error {
 
 	if len(errs) > 0 {
 		for _, e := range errs {
-			info(fmt.Sprintf("%s: %v", e.Repo.NameWithOwner(), e.Err))
+			slog.Debug(fmt.Sprintf("%s: %v", e.Repo.NameWithOwner(), e.Err))
 		}
 	} else {
-		info("all repos cloned successfully!")
+		slog.Debug("all repos cloned successfully!")
 	}
 	return nil
 }

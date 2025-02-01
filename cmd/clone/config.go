@@ -3,8 +3,7 @@ package main
 import (
 	"errors"
 	"flag"
-	"fmt"
-	"io"
+	"log/slog"
 	"os"
 )
 
@@ -20,8 +19,7 @@ type Config struct {
 	CloneDir        string
 	Verbose         bool
 	RepoFile        string
-	InfoFn          func(...interface{})
-	DebugFn         func(...interface{})
+	DebugLogging    bool
 }
 
 type Flags struct {
@@ -32,13 +30,17 @@ type Flags struct {
 	CloneDir        string
 	Verbose         bool
 	RepoFile        string
+	DebugLogging    bool
 }
 
 type Envs struct {
 	CloneDir string
 }
 
-func Load(args []string, outWriter io.Writer) (Config, error) {
+func Load(args []string) (Config, error) {
+
+	slog.Debug("loading config", "args", args)
+
 	// initialize cfg with defaults
 	cfg := Config{
 		Limit: DefaultRepoListLimit,
@@ -47,13 +49,14 @@ func Load(args []string, outWriter io.Writer) (Config, error) {
 	// parse flags
 	flags := Flags{}
 	fs := flag.NewFlagSet("clone", flag.ContinueOnError)
-	flag.StringVar(&flags.Owner, "o", cfg.Owner, "owner of the repository to clone")
-	flag.StringVar(&flags.Repo, "r", cfg.Repo, "name of the repository to clone")
-	flag.BoolVar(&flags.IncludeArchived, "a", cfg.IncludeArchived, "include archived repositories")
-	flag.IntVar(&flags.Limit, "l", cfg.Limit, "limit the number of repositories to search for")
-	flag.StringVar(&flags.CloneDir, "d", cfg.CloneDir, "directory to clone the repositories into")
-	flag.StringVar(&flags.RepoFile, "f", cfg.RepoFile, "File containing the list of repositories to clone")
-	flag.BoolVar(&flags.Verbose, "v", cfg.Verbose, "verbose output")
+	fs.StringVar(&flags.Owner, "o", cfg.Owner, "owner of the repository to clone")
+	fs.StringVar(&flags.Repo, "r", cfg.Repo, "name of the repository to clone")
+	fs.BoolVar(&flags.IncludeArchived, "a", cfg.IncludeArchived, "include archived repositories")
+	fs.IntVar(&flags.Limit, "l", cfg.Limit, "limit the number of repositories to search for")
+	fs.StringVar(&flags.CloneDir, "d", cfg.CloneDir, "directory to clone the repositories into")
+	fs.StringVar(&flags.RepoFile, "f", cfg.RepoFile, "File containing the list of repositories to clone")
+	fs.BoolVar(&flags.Verbose, "v", cfg.Verbose, "verbose output")
+	fs.BoolVar(&flags.DebugLogging, "debug", false, "enable debug logging")
 	if err := fs.Parse(args); err != nil {
 		return Config{}, err
 	}
@@ -70,6 +73,7 @@ func Load(args []string, outWriter io.Writer) (Config, error) {
 	cfg.Verbose = flags.Verbose
 	cfg.RepoFile = flags.RepoFile
 	cfg.Limit = flags.Limit
+	cfg.DebugLogging = flags.DebugLogging
 
 	switch {
 	case flags.CloneDir != "":
@@ -81,23 +85,8 @@ func Load(args []string, outWriter io.Writer) (Config, error) {
 			errors.New("clone directory not specified, set either the CLONE_DIR environment variable or use the -d flag")
 	}
 
-	cfg.InfoFn = func(args ...interface{}) {
-		fmt.Fprintln(outWriter, args...)
-	}
+	slog.Debug("done loading config", "config", cfg)
 
-	cfg.DebugFn = func(args ...interface{}) {
-		if cfg.Verbose {
-			fmt.Fprintln(outWriter, args...)
-		}
-	}
-
+	// return finalized config
 	return cfg, nil
-}
-
-func DirExists(path string) error {
-	info, err := os.Stat(path)
-	if os.IsNotExist(err) || !info.IsDir() {
-		return fmt.Errorf("dir doesn't exist: %s, %w", path, err)
-	}
-	return nil
 }

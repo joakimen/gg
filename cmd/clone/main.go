@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log/slog"
 	"os"
 )
 
@@ -17,31 +18,38 @@ func main() {
 	}
 }
 
-func (m *Main) Run(osArgs []string) error {
-	var cmd string
-	var args []string
-	if len(osArgs) > 0 {
-		cmd, args = osArgs[0], osArgs[1:]
-	}
-
-	outWriter := os.Stderr
-	cfg, err := Load(args, outWriter)
+func (m *Main) Run(args []string) error {
+	cfg, err := Load(args)
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 
-	info := cfg.InfoFn
-
-	switch cmd {
-	case "help":
-		info(flag.ErrHelp)
-		m.Usage()
-		return nil
-	case "version":
-		return (&VersionCommand{}).Run(cfg)
-	default:
-		return (&CloneCommand{}).Run(cfg)
+	if cfg.DebugLogging {
+		enableDebugLogger()
 	}
+
+	if len(args) > 0 {
+		switch args[0] {
+		case "help":
+			fmt.Fprintln(os.Stderr, flag.ErrHelp)
+			m.Usage()
+			return nil
+		case "version":
+			return (&VersionCommand{}).Run(cfg)
+		}
+	}
+	return (&CloneCommand{}).Run(cfg)
+}
+
+func enableDebugLogger() {
+	logHandlerOpts := &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}
+
+	// logHandler := slog.NewJSONHandler(os.Stderr, logHandlerOpts)
+	logHandler := slog.NewTextHandler(os.Stderr, logHandlerOpts)
+	logger := slog.New(logHandler)
+	slog.SetDefault(logger)
 }
 
 type Main struct{}

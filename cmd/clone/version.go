@@ -1,9 +1,11 @@
 package main
 
+import "log/slog"
+
 type VersionCommand struct{}
 
 func (c *VersionCommand) Run(cfg Config) error {
-	info := cfg.InfoFn
-	info(version)
+
+	slog.Debug(version)
 	return nil
 }
