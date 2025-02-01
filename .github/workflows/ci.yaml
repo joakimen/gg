@@ -18,7 +18,7 @@ jobs:
       - name: setup go
         uses: actions/setup-go@v5
         with:
-          go-version-file: 'go.mod'
+          go-version-file: "go.mod"
 
       - name: configure go cache
         uses: actions/cache@v4
@@ -45,7 +45,7 @@ jobs:
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
-          version: '~> v2'
+          version: "~> v2"
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT_JOAKIMEN_HOMEBREW_TAP }}
