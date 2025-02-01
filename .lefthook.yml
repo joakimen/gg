@@ -12,21 +12,12 @@ pre-commit:
           - run: go vet ./...
     - name: md-lint
       glob: "*.md"
-      run: |
-        docker run -v $(pwd):/workdir \
-        ghcr.io/igorshubovych/markdownlint-cli:v0.43.0 \
-        {staged_files} --disable MD013
+      run: markdownlint {staged_files} --disable MD013
     - name: yaml-lint
       glob: "*.{yml,yaml}"
       exclude:
         - .golangci.yml
-      run: |
-        docker run -v $(pwd):/code \
-          pipelinecomponents/yamllint:0.31.0 \
-          /app/bin/yamllint {staged_files}
+      run: yamllint {staged_files}
     - name: json-lint
       glob: "*.json"
-      run: |
-        docker run --rm -v $(pwd):/code \
-        pipelinecomponents/jsonlint:0.19.1 \
-        jsonlint {staged_files} -s -i
+      run: jsonlint {staged_files} -s -i
