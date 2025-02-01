@@ -20,30 +20,16 @@ help: ## Display this help.
 .PHONY: fmt
 fmt:
 	go fmt ./...
-
-.PHONY: vet
-vet:
-	go vet ./...
-
-.PHONY: test
-test: fmt vet
-	go test ./...
+	goimports -w .
 
 .PHONY: lint
 lint:
-	golangci-lint run ./...
-
-.PHONY: lint-fix
-lint-fix:
-	golangci-lint run --fix ./...
+	go vet ./...
+	staticcheck ./...
 
 .PHONY: build
-build: fmt lint vet
+build: fmt lint
 	go build -o $(BIN) $(MAINPRG)
-
-.PHONY: run
-run: fmt vet
-	@go run .
 
 bump-tag:
 	@command -v svu >/dev/null 2>&1 || { echo >&2 "svu is not installed. Aborting."; exit 1; }
