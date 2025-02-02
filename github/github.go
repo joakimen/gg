@@ -12,10 +12,10 @@ import (
 	"strconv"
 )
 
-// BuildGhCommand builds an appropriate gh command to find repos.
-func BuildGhCommand(owner string, repo string, includeArchived bool, limit int) ([]string, error) {
+// buildGHCommand builds an appropriate gh command to find repos.
+func buildGHCommand(owner string, repo string, includeArchived bool, limit int) ([]string, error) {
 	if owner != "" && repo != "" {
-		return nil, errors.New("owner, repo or both must be empty to initiate a search")
+		return nil, fmt.Errorf("owner, repo or both must be empty to initiate a search")
 	}
 
 	slog.Debug("parsing gh args", "owner", owner, "repo", repo, "includeArchived", includeArchived, "limit", limit)
@@ -47,9 +47,9 @@ func BuildGhCommand(owner string, repo string, includeArchived bool, limit int) 
 	return args, nil
 }
 
-// ListRepos searches for repos using Exec based on the provided search arguments.
-func ListRepos(repoSearchArgs []string) ([]Repo, error) {
-	repoJSONData, err := Exec(repoSearchArgs...)
+// listRepos searches for repos using Exec based on the provided search arguments.
+func listRepos(repoSearchArgs []string) ([]Repo, error) {
+	repoJSONData, err := gh(repoSearchArgs...)
 	if err != nil {
 		return nil, err
 	}
@@ -70,24 +70,23 @@ func ListRepos(repoSearchArgs []string) ([]Repo, error) {
 func Clone(cloneDir string, repo Repo) error {
 	repoAbsPath := filepath.Join(cloneDir, repo.Owner, repo.Name)
 	if _, err := os.Stat(repoAbsPath); !os.IsNotExist(err) {
-		return errors.New("repo already exists")
+		return fmt.Errorf("repo %s already exists in %s", repo.NameWithOwner(), repoAbsPath)
 	}
 
-	_, err := Exec("repo", "clone", repo.NameWithOwner(), repoAbsPath)
+	_, err := gh("repo", "clone", repo.NameWithOwner(), repoAbsPath)
 	if err != nil {
-		return fmt.Errorf("failed to clone repo: %w", err)
+		return fmt.Errorf("failed to clone repo %s: %w", repo.NameWithOwner(), err)
 	}
 	return nil
 }
 
-func Exec(args ...string) (string, error) {
+func gh(args ...string) (string, error) {
 	path, err := exec.LookPath("gh")
 	if err != nil {
 		return "", fmt.Errorf("could not find gh executable in PATH. error: %w", err)
 	}
 
 	stdout := bytes.Buffer{}
-
 	cmd := exec.Command(path, args...)
 	cmd.Stdout = &stdout
 
@@ -104,12 +103,12 @@ func Search(owner string, repo string, includeArchived bool, limit int) ([]Repo,
 		err   error
 	)
 
-	repoSearchArgs, err := BuildGhCommand(owner, repo, includeArchived, limit)
+	repoSearchArgs, err := buildGHCommand(owner, repo, includeArchived, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build gh search args: %w", err)
 	}
 
-	githubRepos, err := ListRepos(repoSearchArgs)
+	githubRepos, err := listRepos(repoSearchArgs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list github repos: %w", err)
 	}
@@ -118,7 +117,7 @@ func Search(owner string, repo string, includeArchived bool, limit int) ([]Repo,
 		return nil, errors.New("no github repos found with the provided search criteria")
 	}
 
-	repos, err = Select(githubRepos)
+	repos, err = FuzzySelect(githubRepos)
 	if err != nil {
 		return nil, fmt.Errorf("failed to filter repos: %w", err)
 	}

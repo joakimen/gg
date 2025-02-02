@@ -9,7 +9,7 @@ type Repo struct {
 	Name  string `json:"name"`
 }
 
-type RepoCloneResult struct {
+type CloneResult struct {
 	Repo Repo  `json:"repo"`
 	Err  error `json:"err"`
 }

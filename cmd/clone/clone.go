@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"sync"
 
 	"github.com/joakimen/clone/github"
 )
@@ -12,74 +13,94 @@ import (
 type CloneCommand struct{}
 
 func (c *CloneCommand) Run(cfg Config) error {
-	var err error
-	var repos []github.Repo
+
+	reposToClone, err := getReposToClone(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to get repos to clone: %w", err)
+	}
+
+	if len(reposToClone) == 0 {
+		fmt.Println("no repos selected, exiting")
+		return nil
+	}
+
+	cloneErrors := clone(cfg, reposToClone)
+	if len(cloneErrors) > 0 {
+		fmt.Fprintln(os.Stderr, "failed to clone some repos:")
+		for _, e := range cloneErrors {
+			fmt.Fprintf(os.Stderr, "- %s: %v\n", e.Repo.NameWithOwner(), e.Err)
+		}
+	} else {
+		fmt.Println("all repos cloned successfully!")
+	}
+	return nil
+}
+
+func getReposToClone(cfg Config) ([]github.Repo, error) {
+	var (
+		reposToClone []github.Repo
+		err          error
+	)
 	switch {
 	case cfg.RepoFile != "":
-		slog.Debug("reading repos from file:", "repoFile", cfg.RepoFile)
-		repos, err = readReposFromFile(cfg.RepoFile)
+		slog.Debug("reading repos from file", "file", cfg.RepoFile)
+		reposToClone, err = readReposFromFile(cfg.RepoFile)
 		if err != nil {
-			return fmt.Errorf("failed to read repos from file: %w", err)
+			return []github.Repo{}, fmt.Errorf("couldn't read repos from file: %w", err)
 		}
 	case cfg.Owner != "" && cfg.Repo != "":
-		slog.Debug("using r specified by owner and r flags")
-		repos = []github.Repo{
+		slog.Debug("both owner and repo were provided, cloning single repo", "owner", cfg.Owner, "repo", cfg.Repo)
+		reposToClone = []github.Repo{
 			{
 				Owner: cfg.Owner,
 				Name:  cfg.Repo,
 			},
 		}
 	default:
-		slog.Debug("querying github for repos")
-		repos, err = github.Search(cfg.Owner, cfg.Repo, cfg.IncludeArchived, cfg.Limit)
+		slog.Debug("searching github for repos", "owner", cfg.Owner, "repo", cfg.Repo)
+		reposToClone, err = github.Search(cfg.Owner, cfg.Repo, cfg.IncludeArchived, cfg.Limit)
 		if err != nil {
-			return fmt.Errorf("failed to search for repos: %w", err)
+			return []github.Repo{}, fmt.Errorf("failed to search for repos: %w", err)
 		}
 	}
+	return reposToClone, nil
+}
 
-	if len(repos) == 0 {
-		slog.Debug("no repos selected, exiting")
-		return nil
-	}
+func clone(cfg Config, reposToClone []github.Repo) []github.CloneResult {
+	slog.Debug("cloning repos", "cloneDir", cfg.CloneDir, "repos", reposToClone)
 
-	slog.Debug("cloning repos", "cloneDir", cfg.CloneDir, "repos", repos)
-	resultChan := make(chan github.RepoCloneResult, len(repos))
-	for _, repo := range repos {
+	var wg sync.WaitGroup
+	resultChan := make(chan github.CloneResult, len(reposToClone))
+	for _, repo := range reposToClone {
+		wg.Add(1)
 		go func(r github.Repo) {
-			err = github.Clone(cfg.CloneDir, r)
-			errClone := github.Clone(cfg.CloneDir, repo)
-			resultChan <- github.RepoCloneResult{Repo: repo, Err: errClone}
+			defer wg.Done()
+			cloneError := github.Clone(cfg.CloneDir, repo)
+			resultChan <- github.CloneResult{Repo: r, Err: cloneError}
 		}(repo)
 	}
+	wg.Wait()
+	close(resultChan)
 
-	var errs []github.RepoCloneResult
-	for range repos {
-		res := <-resultChan
+	slog.Debug("procesing clone results")
+	var errs []github.CloneResult
+	for res := range resultChan {
 		if res.Err != nil {
 			errs = append(errs, res)
 		}
 	}
-	close(resultChan)
-
-	if len(errs) > 0 {
-		for _, e := range errs {
-			slog.Debug(fmt.Sprintf("%s: %v", e.Repo.NameWithOwner(), e.Err))
-		}
-	} else {
-		slog.Debug("all repos cloned successfully!")
-	}
-	return nil
+	return errs
 }
 
 func readReposFromFile(filepath string) ([]github.Repo, error) {
-	var repos []github.Repo
+	var reposFromFile []github.Repo
 	repoJSONData, err := os.ReadFile(filepath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read repo file: %w", err)
 	}
 
-	if err = json.Unmarshal(repoJSONData, &repos); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal repo file: %w", err)
+	if err = json.Unmarshal(repoJSONData, &reposFromFile); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal repos from file: %w", err)
 	}
-	return repos, nil
+	return reposFromFile, nil
 }

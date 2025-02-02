@@ -20,12 +20,18 @@ func main() {
 
 func (m *Main) Run(args []string) error {
 	cfg, err := Load(args)
+
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 
 	if cfg.DebugLogging {
-		enableDebugLogger()
+		logHandlerOpts := &slog.HandlerOptions{
+			Level: slog.LevelDebug,
+		}
+		logHandler := slog.NewTextHandler(os.Stderr, logHandlerOpts)
+		logger := slog.New(logHandler)
+		slog.SetDefault(logger)
 	}
 
 	if len(args) > 0 {
@@ -35,21 +41,11 @@ func (m *Main) Run(args []string) error {
 			m.Usage()
 			return nil
 		case "version":
-			return (&VersionCommand{}).Run(cfg)
+			fmt.Println(version)
+			return nil
 		}
 	}
 	return (&CloneCommand{}).Run(cfg)
-}
-
-func enableDebugLogger() {
-	logHandlerOpts := &slog.HandlerOptions{
-		Level: slog.LevelDebug,
-	}
-
-	// logHandler := slog.NewJSONHandler(os.Stderr, logHandlerOpts)
-	logHandler := slog.NewTextHandler(os.Stderr, logHandlerOpts)
-	logger := slog.New(logHandler)
-	slog.SetDefault(logger)
 }
 
 type Main struct{}
