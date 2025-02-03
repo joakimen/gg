@@ -58,7 +58,7 @@ func getReposToClone(cfg Config) ([]github.Repo, error) {
 		}
 	default:
 		slog.Debug("searching github for repos", "owner", cfg.Owner, "repo", cfg.Repo)
-		reposToClone, err = github.Search(cfg.Owner, cfg.Repo, cfg.IncludeArchived, cfg.Limit)
+		reposToClone, err = github.Search(cfg.Owner, cfg.Repo, cfg.IncludeArchived, cfg.RepoListLimit)
 		if err != nil {
 			return []github.Repo{}, fmt.Errorf("failed to search for repos: %w", err)
 		}
@@ -75,7 +75,7 @@ func clone(cfg Config, reposToClone []github.Repo) []github.CloneResult {
 		wg.Add(1)
 		go func(r github.Repo) {
 			defer wg.Done()
-			cloneError := github.Clone(cfg.CloneDir, repo)
+			cloneError := github.Clone(cfg.CloneDir, repo, cfg.ShallowClone)
 			resultChan <- github.CloneResult{Repo: r, Err: cloneError}
 		}(repo)
 	}

@@ -19,8 +19,7 @@ func main() {
 }
 
 func (m *Main) Run(args []string) error {
-	cfg, err := Load(args)
-
+	cfg, err := LoadConfig(args)
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
@@ -33,6 +32,8 @@ func (m *Main) Run(args []string) error {
 		logger := slog.New(logHandler)
 		slog.SetDefault(logger)
 	}
+
+	slog.Debug("config loaded", "config", cfg)
 
 	if len(args) > 0 {
 		switch args[0] {

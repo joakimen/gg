@@ -67,13 +67,20 @@ func listRepos(repoSearchArgs []string) ([]Repo, error) {
 }
 
 // Clone a single repo from GitHub to the specified cloneDir.
-func Clone(cloneDir string, repo Repo) error {
+func Clone(cloneDir string, repo Repo, shallowClone bool) error {
 	repoAbsPath := filepath.Join(cloneDir, repo.Owner, repo.Name)
 	if _, err := os.Stat(repoAbsPath); !os.IsNotExist(err) {
 		return fmt.Errorf("repo %s already exists in %s", repo.NameWithOwner(), repoAbsPath)
 	}
 
-	_, err := gh("repo", "clone", repo.NameWithOwner(), repoAbsPath)
+	cloneArgs := []string{"repo", "clone", repo.NameWithOwner(), repoAbsPath}
+	if shallowClone {
+		cloneArgs = append(cloneArgs, "--depth", "1")
+	}
+
+	slog.Debug("cloning repo", "cloneAargs", cloneArgs)
+
+	_, err := gh(cloneArgs...)
 	if err != nil {
 		return fmt.Errorf("failed to clone repo %s: %w", repo.NameWithOwner(), err)
 	}
