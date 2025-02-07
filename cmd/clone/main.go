@@ -1,30 +1,36 @@
 package main
 
 import (
-	"flag"
-	"fmt"
+	"log"
 	"log/slog"
 	"os"
+
+	"github.com/alecthomas/kong"
 )
 
-var (
-	version = "(development build)"
-)
+const appName = "clone"
 
 func main() {
-	if err := (&Main{}).Run(os.Args[1:]); err != nil {
-		fmt.Fprintln(os.Stderr, "failed to run:", err)
-		os.Exit(1)
+	if err := run(); err != nil {
+		log.Fatal(err)
 	}
 }
 
-func (m *Main) Run(args []string) error {
-	cfg, err := LoadConfig(args)
-	if err != nil {
-		return fmt.Errorf("failed to load config: %w", err)
+func run() error {
+	cli := CLI{
+		Globals: Globals{
+			Debug: false,
+		},
 	}
+	ctx := kong.Parse(&cli,
+		kong.Name(appName),
+		kong.Description("Interactive GitHub repo cloning"),
+		kong.UsageOnError(),
+		kong.ConfigureHelp(kong.HelpOptions{
+			Compact: true,
+		}))
 
-	if cfg.DebugLogging {
+	if cli.Globals.Debug {
 		logHandlerOpts := &slog.HandlerOptions{
 			Level: slog.LevelDebug,
 		}
@@ -33,35 +39,9 @@ func (m *Main) Run(args []string) error {
 		slog.SetDefault(logger)
 	}
 
-	slog.Debug("config loaded", "config", cfg)
+	slog.Debug("done parsing args", "args", cli)
 
-	if len(args) > 0 {
-		switch args[0] {
-		case "help":
-			fmt.Fprintln(os.Stderr, flag.ErrHelp)
-			m.Usage()
-			return nil
-		case "version":
-			fmt.Println(version)
-			return nil
-		}
-	}
-	return (&CloneCommand{}).Run(cfg)
-}
-
-type Main struct{}
-
-func (m *Main) Usage() {
-	fmt.Fprintln(os.Stderr, `
-clone is a tool for interactively cloning GitHub repositories.
-
-Usage:
-
-	clone <command> [arguments]
-
-The commands are:
-
-	version      prints the binary version
-	help         display this help screen
-`[1:])
+	err := ctx.Run(&cli.Globals)
+	ctx.FatalIfErrorf(err)
+	return err
 }

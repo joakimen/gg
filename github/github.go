@@ -78,7 +78,7 @@ func Clone(cloneDir string, repo Repo, shallowClone bool) error {
 		cloneArgs = append(cloneArgs, "--depth", "1")
 	}
 
-	slog.Debug("cloning repo", "cloneAargs", cloneArgs)
+	slog.Debug("cloning repo", "cloneArgs", cloneArgs)
 
 	_, err := gh(cloneArgs...)
 	if err != nil {

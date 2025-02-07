@@ -6,7 +6,7 @@ import (
 	fz "github.com/ktr0731/go-fuzzyfinder"
 )
 
-// FuzzySelect provides fuzzy single- or multi-selection for repos
+// FuzzySelect provides fuzzy single- or multi-selection for repos.
 func FuzzySelect(repos []Repo) ([]Repo, error) {
 	renderFunc := func(selectedIndex int) string {
 		return repos[selectedIndex].NameWithOwner()
