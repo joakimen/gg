@@ -7,7 +7,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/joakimen/clone/github"
+	"github.com/joakimen/gg/github"
 )
 
 func clone(cloneDir string, reposToClone []github.Repo, shallow bool) []github.CloneResult {

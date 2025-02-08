@@ -7,8 +7,8 @@ endif
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
-BIN=./bin/clone
-MAINPRG=./cmd/clone
+BIN=./bin/gg
+MAINPRG=./cmd/gg
 
 .PHONY: all
 all: build

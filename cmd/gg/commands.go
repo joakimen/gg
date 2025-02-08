@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/joakimen/clone/github"
+	"github.com/joakimen/gg/github"
 )
 
 func (cmd VersionCmd) Run(_ *Globals) error {

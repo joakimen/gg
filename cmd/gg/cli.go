@@ -1,12 +1,17 @@
 package main
 
+const (
+	cliName = "gg"
+	cliDesc = "Convenience CLI for some GitHub operations"
+)
+
 // overwritten by goreleaser.
 var version = "(development build)"
 
 type CLI struct {
 	Globals
 	Version VersionCmd `cmd:"" help:"Print version number"`
-	Clone   CloneCmd   `cmd:"" help:"Clone one or more repos" default:"1"`
+	Clone   CloneCmd   `cmd:"" help:"Clone one or more repos"`
 }
 
 type Globals struct {

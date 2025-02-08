@@ -8,8 +8,6 @@ import (
 	"github.com/alecthomas/kong"
 )
 
-const appName = "clone"
-
 func main() {
 	if err := run(); err != nil {
 		log.Fatal(err)
@@ -23,8 +21,8 @@ func run() error {
 		},
 	}
 	ctx := kong.Parse(&cli,
-		kong.Name(appName),
-		kong.Description("Interactive GitHub repo cloning"),
+		kong.Name(cliName),
+		kong.Description(cliDesc),
 		kong.UsageOnError(),
 		kong.ConfigureHelp(kong.HelpOptions{
 			Compact: true,

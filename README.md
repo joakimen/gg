@@ -1,6 +1,8 @@
-# clone
+# gg
 
-Clones one or more repositories to the configured clone directory.
+gg - Go GitHub
+
+Convenience CLI for some GitHub operations.
 
 ## Requirements
 
@@ -11,44 +13,39 @@ Clones one or more repositories to the configured clone directory.
 ### Homebrew
 
 ```shell
-brew install joakimen/tap/clone
+brew install joakimen/tap/gg
 ```
 
 ### Go
 
 ```shell
-go install github.com/joakimen/clone/cmd/clone@latest
+go install github.com/joakimen/gg/cmd/gg@latest
 ```
 
 ## Usage
 
 ```shell
-$ clone 
+$ gg
+Usage: gg <command> [flags]
 
-    # Optional flags:
-    -o  Owner of the repositories to clone
-    -r  Name repository to clone
-    -d  Directory to clone the repositories to
-    -a  Include archived repositories in the search
-    -l  The limit of repositories to search for
-    -f  Name of a file containing a list of repositories to clone
-    -v  Verbose output
-```
+Interactive GitHub repo cloning
 
-**Note**: All flags are optional, but the Clone Directory must be set either as an environment variable or as an argument:
+Flags:
+  -h, --help     Show context-sensitive help.
+      --debug    Enable debug logging
 
-```shell
-# using env 
-export CLONE_DIR=~/dev/github.com # (put this in your shell profile)
-clone
+Commands:
+  version    Print version number
+  clone      Clone one or more repos
 
-# using arg
-clone -d ~/dev/github.com
+Run "gg <command> --help" for more information on a command.
+
+gg: error: expected one of "version", "clone"
 ```
 
 ## GitHub Authentication
 
-This CLI uses the `gh` CLI to clone repositories. You will need to authenticate with GitHub before using this CLI.
+This CLI currently uses the `gh` CLI to clone repositories. You will need to authenticate with GitHub before using this CLI.
 
 Authenticating to GitHub:
 
@@ -71,13 +68,19 @@ To manually invoke the checks on all files without Git hooks, run:
 
 ```shell
 $ lefthook run pre-commit --all-files
-
-...
-
+╭───────────────────────────────────────╮
+│ 🥊 lefthook v1.10.1  hook: pre-commit │
+╰───────────────────────────────────────╯
+│  gofumpt -l -w . (skip) no matching staged files
+│  goimports -w . (skip) no matching staged files
+│  staticcheck ./... (skip) no matching staged files
+│  go vet ./... (skip) no matching staged files
+┃  yaml-lint ❯
+┃  json-lint ❯
+┃  md-lint ❯
   ────────────────────────────────────
-summary: (done in 0.72 seconds)
+summary: (done in 0.16 seconds)
+✔️ yaml-lint
 ✔️ json-lint
 ✔️ md-lint
-✔️ go
-🥊 yaml-lint
 ```

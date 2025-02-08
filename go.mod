@@ -1,4 +1,4 @@
-module github.com/joakimen/clone
+module github.com/joakimen/gg
 
 go 1.22
 
