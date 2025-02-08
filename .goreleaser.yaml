@@ -12,7 +12,7 @@ builds:
       - linux
       - darwin
 archives:
-  - format: binary
+  - formats: ['binary']
 
 changelog:
   sort: asc
