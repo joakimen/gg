@@ -25,7 +25,7 @@ type CloneCmd struct {
 	Owner           string `short:"o" help:"Owner of the repository to clone"`
 	IncludeArchived bool   `short:"a" help:"Include archived repositories"`
 	Limit           int    `short:"l" default:"100" help:"Limit the number of repositories to search for"`
-	CloneDir        string `short:"d" required:"true" env:"CLONE_DIR" help:"Directory to clone the repositories into"`
+	CloneDir        string `short:"d" required:"true" env:"GG_CLONE_DIR" help:"Directory to clone the repositories into"`
 	RepoFile        string `short:"f" help:"File containing the list of repositories to clone"`
 	Shallow         bool   `help:"Shallow clone the repository"`
 }
