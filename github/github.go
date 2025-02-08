@@ -32,8 +32,10 @@ func buildGHCommand(owner string, repo string, includeArchived bool, limit int) 
 		if includeArchived {
 			args = []string{"search", "repos", repo, "--match", "name", "--json", "name,owner", "--limit", limitStr}
 		} else {
-			args = []string{"search", "repos", repo, "--match", "name", "--json", "name,owner", "--limit", limitStr,
-				"--archived=false"}
+			args = []string{
+				"search", "repos", repo, "--match", "name", "--json", "name,owner", "--limit", limitStr,
+				"--archived=false",
+			}
 		}
 	default:
 		if includeArchived {

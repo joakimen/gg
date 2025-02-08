@@ -13,7 +13,7 @@ func (cmd VersionCmd) Run(_ *Globals) error {
 	return nil
 }
 
-func (cmd *CloneCmd) Run(glb *Globals) error {
+func (cmd *CloneCmd) Run(_ *Globals) error {
 	reposToClone, err := getReposToClone(
 		cmd.Owner,
 		cmd.Repo,
@@ -33,6 +33,7 @@ func (cmd *CloneCmd) Run(glb *Globals) error {
 	cloneErrors := clone(cmd.CloneDir, reposToClone, cmd.Shallow)
 	if len(cloneErrors) > 0 {
 		fmt.Fprintln(os.Stderr, "failed to clone some repos:")
+
 		for _, e := range cloneErrors {
 			fmt.Fprintf(os.Stderr, "- %s: %v\n", e.Repo.NameWithOwner(), e.Err)
 		}

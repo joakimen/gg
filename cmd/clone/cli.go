@@ -1,9 +1,7 @@
 package main
 
-var (
-	// overwritten by goreleaser.
-	version = "(development build)"
-)
+// overwritten by goreleaser.
+var version = "(development build)"
 
 type CLI struct {
 	Globals
