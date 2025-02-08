@@ -19,7 +19,7 @@ help: ## Display this help.
 
 .PHONY: fmt
 fmt:
-	go fmt ./...
+	gofumpt -l -w .
 	goimports -w .
 
 .PHONY: lint
