@@ -34,7 +34,7 @@ build: fmt lint
 release:
 	@command -v svu >/dev/null 2>&1 || { echo >&2 "svu is not installed. Aborting."; exit 1; }
 	@next_tag=$$(svu next) && git tag $$next_tag && echo "git tag $$next_tag"
-	git push --follow-tags
+	git push --tags
 
 .PHONY: clean
 clean:
