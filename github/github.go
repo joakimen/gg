@@ -45,7 +45,7 @@ func buildGHCommand(owner string, repo string, includeArchived bool, limit int) 
 		}
 	}
 
-	slog.Debug("done parsing gh args", "args", args)
+	slog.Debug("done building gh args", "args", args)
 	return args, nil
 }
 
