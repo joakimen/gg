@@ -10,7 +10,27 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+
+	"github.com/joakimen/gg"
+	"github.com/joakimen/gg/fuzzy"
 )
+
+type Service struct {
+	APIToken string
+	Host     string
+}
+
+func NewService(token string, hostname string) *Service {
+	return &Service{
+		APIToken: token,
+		Host:     hostname,
+	}
+}
+
+func (s *Service) Authenticate() error {
+	slog.Debug("authenticating with GitHub", "hostname", s.Host, "token", s.APIToken)
+	return nil
+}
 
 // buildGHCommand builds an appropriate gh command to find repos.
 func buildGHCommand(owner string, repo string, includeArchived bool, limit int) ([]string, error) {
@@ -50,26 +70,31 @@ func buildGHCommand(owner string, repo string, includeArchived bool, limit int) 
 }
 
 // listRepos searches for repos using Exec based on the provided search arguments.
-func listRepos(repoSearchArgs []string) ([]Repo, error) {
+func listRepos(repoSearchArgs []string) ([]gg.Repo, error) {
 	repoJSONData, err := gh(repoSearchArgs...)
 	if err != nil {
 		return nil, err
 	}
 
-	var searchResults []RepoSearchResult
+	var searchResults []struct {
+		Name  string `json:"name"`
+		Owner struct {
+			Login string `json:"login"`
+		} `json:"owner"`
+	}
 	if err = json.Unmarshal([]byte(repoJSONData), &searchResults); err != nil {
 		return nil, err
 	}
 
-	var repos []Repo
+	var repos []gg.Repo
 	for _, repoResp := range searchResults {
-		repos = append(repos, Repo{Owner: repoResp.Owner.Login, Name: repoResp.Name})
+		repos = append(repos, gg.Repo{Owner: repoResp.Owner.Login, Name: repoResp.Name})
 	}
 	return repos, nil
 }
 
 // Clone a single repo from GitHub to the specified cloneDir.
-func Clone(cloneDir string, repo Repo, shallowClone bool) error {
+func Clone(cloneDir string, repo gg.Repo, shallowClone bool) error {
 	repoAbsPath := filepath.Join(cloneDir, repo.Owner, repo.Name)
 	if _, err := os.Stat(repoAbsPath); !os.IsNotExist(err) {
 		return fmt.Errorf("repo %s already exists in %s", repo.NameWithOwner(), repoAbsPath)
@@ -106,9 +131,9 @@ func gh(args ...string) (string, error) {
 	return stdout.String(), nil
 }
 
-func Search(owner string, repo string, includeArchived bool, limit int) ([]Repo, error) {
+func Search(owner string, repo string, includeArchived bool, limit int) ([]gg.Repo, error) {
 	var (
-		repos []Repo
+		repos []gg.Repo
 		err   error
 	)
 
@@ -126,7 +151,7 @@ func Search(owner string, repo string, includeArchived bool, limit int) ([]Repo,
 		return nil, errors.New("no github repos found with the provided search criteria")
 	}
 
-	repos, err = FuzzySelect(githubRepos)
+	repos, err = fuzzy.Select(githubRepos)
 	if err != nil {
 		return nil, fmt.Errorf("failed to filter repos: %w", err)
 	}
