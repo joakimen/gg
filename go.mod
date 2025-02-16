@@ -3,7 +3,7 @@ module github.com/joakimen/gg
 go 1.22
 
 require (
-	github.com/alecthomas/kong v1.7.0
+	github.com/alecthomas/kong v1.8.1
 	github.com/ktr0731/go-fuzzyfinder v0.8.0
 )
 
