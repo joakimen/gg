@@ -1,13 +1,14 @@
-package github
+package fuzzy
 
 import (
 	"fmt"
 
+	"github.com/joakimen/gg"
 	fz "github.com/ktr0731/go-fuzzyfinder"
 )
 
-// FuzzySelect provides fuzzy single- or multi-selection for repos.
-func FuzzySelect(repos []Repo) ([]Repo, error) {
+// Select provides fuzzy single- or multi-selection for repos.
+func Select(repos []gg.Repo) ([]gg.Repo, error) {
 	renderFunc := func(selectedIndex int) string {
 		return repos[selectedIndex].NameWithOwner()
 	}
@@ -16,7 +17,7 @@ func FuzzySelect(repos []Repo) ([]Repo, error) {
 		return nil, fmt.Errorf("no repos selected: %w", err)
 	}
 
-	var selectedRepos []Repo
+	var selectedRepos []gg.Repo
 	for _, idx := range indices {
 		selectedRepos = append(selectedRepos, repos[idx])
 	}

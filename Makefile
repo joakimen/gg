@@ -31,11 +31,20 @@ lint:
 build: fmt lint
 	go build -o $(BIN) $(MAINPRG)
 
+.PHONY: test
+test:
+	go test -v ./...
+
+.PHONY: release
 release:
 	@command -v svu >/dev/null 2>&1 || { echo >&2 "svu is not installed. Aborting."; exit 1; }
 	@next_tag=$$(svu next) && git tag $$next_tag && echo "git tag $$next_tag"
 	git push --tags
 
+.PHONY: mock
+mock:
+	mockery
+
 .PHONY: clean
 clean:
-	rm -rf $(BIN)
+	rm -rf $(BIN) ./dist

@@ -13,7 +13,6 @@ run:
   # Default: 1m
   timeout: 3m
 
-
 # This file contains only configs which differ from defaults.
 # All possible options can be found here https://github.com/golangci/golangci-lint/blob/master/.golangci.reference.yml
 linters-settings:
@@ -137,7 +136,7 @@ linters-settings:
       shadow:
         # Whether to be strict about shadowing; can be noisy.
         # Default: false
-        strict: true
+        strict: false
 
   inamedparam:
     # Skips check for interface methods with only a single parameter.
@@ -172,7 +171,7 @@ linters-settings:
   nolintlint:
     # Exclude following linters from requiring an explanation.
     # Default: []
-    allow-no-explanation: [ funlen, gocognit, lll ]
+    allow-no-explanation: [funlen, gocognit, lll]
     # Enable to require an explanation of nonzero length after each nolint directive.
     # Default: false
     require-explanation: true
@@ -184,6 +183,7 @@ linters-settings:
     # Optimizes into strings concatenation.
     # Default: true
     strconcat: false
+    errorf: false
 
   reassign:
     # Patterns for global variable names that are checked for reassignment.
@@ -199,7 +199,6 @@ linters-settings:
       - github.com/jmoiron/sqlx
 
   sloglint:
-
     # Enforce not using global loggers.
     # Values:
     # - "": disabled
@@ -208,7 +207,7 @@ linters-settings:
     # https://github.com/go-simpler/sloglint?tab=readme-ov-file#no-global
     # Default: ""
 
-#    no-global: "all"
+    #    no-global: "all"
     # Enforce using methods that accept a context.
     # Values:
     # - "": disabled
@@ -223,7 +222,6 @@ linters-settings:
     # Otherwise, only methods that take `*testing.T`, `*testing.B`, and `testing.TB` as arguments are checked.
     # Default: false
     all: true
-
 
 linters:
   disable-all: true
@@ -251,7 +249,7 @@ linters:
     - exhaustive # checks exhaustiveness of enum switch statements
     # - exptostd # detects functions from golang.org/x/exp/ that can be replaced by std functions
     - fatcontext # detects nested contexts in loops
-    - forbidigo # forbids identifiers
+    # - forbidigo # forbids identifiers
     - funlen # tool for detection of long functions
     - gocheckcompilerdirectives # validates go compiler directive comments (//go:)
     - gochecknoglobals # checks that no global variables exist
@@ -347,7 +345,6 @@ linters:
     #- thelper # detects golang test helpers without t.Helper() call and checks the consistency of test helpers
     #- wsl # [too strict and mostly code is not more readable] whitespace linter forces you to use empty lines
 
-
 issues:
   # Maximum count of issues with the same text.
   # Set to 0 to disable.
@@ -356,9 +353,9 @@ issues:
 
   exclude-rules:
     - source: "(noinspection|TODO)"
-      linters: [ godot ]
+      linters: [godot]
     - source: "//noinspection"
-      linters: [ gocritic ]
+      linters: [gocritic]
     - path: "_test\\.go"
       linters:
         - bodyclose
