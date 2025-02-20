@@ -18,22 +18,6 @@ func (r Repo) NameWithOwner() string {
 	return fmt.Sprintf("%s/%s", r.Owner, r.Name)
 }
 
-// ype GitHubCredentials struct {
-// 	Username string `json:"username"`
-// 	APIToken string `json:"api_token"`
-// 	Host     string `json:"host"`
-// }
-
-type KeyringItem interface {
-	Get() (string, error)
-	Set(string) error
-	Delete() error
-}
-
-type GitHubService interface {
-	GetRepos(owner string, repo string, includeArchived bool, limit int) ([]Repo, error)
-}
-
 type GitHubUser struct {
 	Login string
 }

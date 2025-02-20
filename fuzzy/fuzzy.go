@@ -7,8 +7,14 @@ import (
 	fz "github.com/ktr0731/go-fuzzyfinder"
 )
 
+type Service struct{}
+
+func NewService() *Service {
+	return &Service{}
+}
+
 // Select provides fuzzy single- or multi-selection for repos.
-func Select(repos []gg.Repo) ([]gg.Repo, error) {
+func (s *Service) Select(repos []gg.Repo) ([]gg.Repo, error) {
 	renderFunc := func(selectedIndex int) string {
 		return repos[selectedIndex].NameWithOwner()
 	}
