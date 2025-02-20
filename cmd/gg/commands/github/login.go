@@ -6,6 +6,7 @@ import (
 	"syscall"
 
 	"github.com/joakimen/gg/github"
+	"github.com/joakimen/gg/keyring"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -16,8 +17,8 @@ func NewLoginCmd() *cobra.Command {
 		Short: "authenticate to GitHub",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			slog.Debug("reading token from user")
-			credentialsManager := github.NewCredentialsManager()
 
+			keyringManager := keyring.NewManager(keyringService, keyringUser)
 			inputToken, err := readPassword("Enter your GitHub API token: ")
 			if err != nil {
 				return fmt.Errorf("failed to read token: %w", err)
@@ -28,18 +29,16 @@ func NewLoginCmd() *cobra.Command {
 			}
 
 			fmt.Println("Verifying token..")
-			githubService := github.NewService2(inputToken)
+			githubService := github.NewService(inputToken)
 			user, err := githubService.GetAuthenticatedUser(cmd.Context())
 			if err != nil {
-				return fmt.Errorf("failed to get authenticated user with the provided token: %w", err)
+				return fmt.Errorf("authentication using the provided token failed: %w", err)
 			}
-			fmt.Println("Authenticated successfully as user:", user.Login)
-			fmt.Println("Storing token in keyring..")
-			err = credentialsManager.SetToken(inputToken)
+			err = keyringManager.Set(inputToken)
 			if err != nil {
 				return fmt.Errorf("failed to store token in keyring: %w", err)
 			}
-			fmt.Println("Token successfully stored in keyring.")
+			fmt.Println("Authenticated successfully as user:", user.Login)
 			return nil
 		},
 	}

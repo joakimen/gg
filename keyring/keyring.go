@@ -9,22 +9,24 @@ import (
 
 type Manager struct {
 	service string
+	user    string
 }
 
-func NewKeyringManager(service string) *Manager {
+func NewManager(service string, user string) *Manager {
 	return &Manager{
 		service: service,
+		user:    user,
 	}
 }
 
-func (m *Manager) Get(user string) (string, error) {
-	return keyring.Get(m.service, user)
+func (m *Manager) Get() (string, error) {
+	return keyring.Get(m.service, m.user)
 }
 
-func (m *Manager) Set(user string, val string) error {
-	return keyring.Set(m.service, user, val)
+func (m *Manager) Set(val string) error {
+	return keyring.Set(m.service, m.user, val)
 }
 
-func (m *Manager) Delete(user string) error {
-	return keyring.Delete(m.service, user)
+func (m *Manager) Delete() error {
+	return keyring.Delete(m.service, m.user)
 }

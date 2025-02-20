@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// overwritten with ldflags during ci
+// overwritten with ldflags during ci.
 var version = "(development build)"
 
 type RootOpts struct {
@@ -21,7 +21,7 @@ func newRootCmd() *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:   "gg",
 		Short: "Convenience cli for everyday things",
-		PersistentPreRun: func(_ *cobra.Command, args []string) {
+		PersistentPreRun: func(_ *cobra.Command, _ []string) {
 			if opts.Debug {
 				logOut := os.Stdout
 				logHandlerOpts := &slog.HandlerOptions{
@@ -34,6 +34,7 @@ func newRootCmd() *cobra.Command {
 			}
 		},
 	}
+
 	rootCmd.PersistentFlags().BoolVar(&opts.Debug, "debug", false, "Enable debug logging")
 
 	versionCmd := &cobra.Command{

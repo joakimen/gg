@@ -1,159 +1,87 @@
 package github
 
 import (
-	"bytes"
-	"encoding/json"
-	"errors"
+	"context"
 	"fmt"
-	"log/slog"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"strconv"
+	"net/http"
+	"time"
 
+	"github.com/google/go-github/v69/github"
 	"github.com/joakimen/gg"
-	"github.com/joakimen/gg/fuzzy"
 )
 
 type Service struct {
-	APIToken string
-	Host     string
+	Client *github.Client
 }
 
-func NewService(token string, hostname string) *Service {
-	return &Service{
-		APIToken: token,
-		Host:     hostname,
+func NewService(authToken string) Service {
+	timeoutSeconds := 10
+	httpClient := &http.Client{
+		Timeout: time.Duration(timeoutSeconds) * time.Second,
+	}
+	return Service{
+		Client: github.NewClient(httpClient).WithAuthToken(authToken),
 	}
 }
 
-func (s *Service) Authenticate() error {
-	slog.Debug("authenticating with GitHub", "hostname", s.Host, "token", s.APIToken)
-	return nil
-}
-
-// buildGHCommand builds an appropriate gh command to find repos.
-func buildGHCommand(owner string, repo string, includeArchived bool, limit int) ([]string, error) {
-	if owner != "" && repo != "" {
-		return nil, fmt.Errorf("owner, repo or both must be empty to initiate a search")
+func (s *Service) GetAuthenticatedUser(ctx context.Context) (gg.GitHubUser, error) {
+	user, _, err := s.Client.Users.Get(ctx, "")
+	if err != nil {
+		return gg.GitHubUser{}, fmt.Errorf("failed to get the authenticated user: %w", err)
 	}
 
-	slog.Debug("parsing gh args", "owner", owner, "repo", repo, "includeArchived", includeArchived, "limit", limit)
-	limitStr := strconv.Itoa(limit)
-	var args []string
-	switch {
-	case owner != "":
-		if includeArchived {
-			args = []string{"repo", "list", owner, "--json", "name,owner", "--limit", limitStr}
-		} else {
-			args = []string{"repo", "list", owner, "--json", "name,owner", "--no-archived", "--limit", limitStr}
+	mappedUser := gg.GitHubUser{
+		Login: user.GetLogin(),
+	}
+	return mappedUser, nil
+}
+
+func (s *Service) ListRepositoriesByUser(ctx context.Context, user string) ([]gg.Repo, error) {
+	opts := &github.RepositoryListByUserOptions{
+		ListOptions: github.ListOptions{PerPage: 100},
+	}
+	var allRepos []gg.Repo
+	for {
+		repos, resp, err := s.Client.Repositories.ListByUser(ctx, user, opts)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list repositories for user %s: %w", user, err)
 		}
-	case repo != "":
-		if includeArchived {
-			args = []string{"search", "repos", repo, "--match", "name", "--json", "name,owner", "--limit", limitStr}
-		} else {
-			args = []string{
-				"search", "repos", repo, "--match", "name", "--json", "name,owner", "--limit", limitStr,
-				"--archived=false",
+		for _, repo := range repos {
+			repo := gg.Repo{
+				Owner: repo.GetOwner().GetLogin(),
+				Name:  repo.GetName(),
 			}
+			allRepos = append(allRepos, repo)
 		}
-	default:
-		if includeArchived {
-			args = []string{"repo", "list", "--json", "name,owner", "--limit", limitStr}
-		} else {
-			args = []string{"repo", "list", "--json", "name,owner", "--no-archived", "--limit", limitStr}
+		if resp.NextPage == 0 {
+			break
 		}
+		opts.Page = resp.NextPage
 	}
-
-	slog.Debug("done building gh args", "args", args)
-	return args, nil
+	return allRepos, nil
 }
 
-// listRepos searches for repos using Exec based on the provided search arguments.
-func listRepos(repoSearchArgs []string) ([]gg.Repo, error) {
-	repoJSONData, err := gh(repoSearchArgs...)
-	if err != nil {
-		return nil, err
+func (s *Service) SearchRepositoriesByName(ctx context.Context, name string) ([]gg.Repo, error) {
+	opts := &github.SearchOptions{
+		ListOptions: github.ListOptions{PerPage: 100},
 	}
-
-	var searchResults []struct {
-		Name  string `json:"name"`
-		Owner struct {
-			Login string `json:"login"`
-		} `json:"owner"`
+	var allRepos []gg.Repo
+	for {
+		repos, resp, err := s.Client.Search.Repositories(ctx, name, opts)
+		if err != nil {
+			return nil, fmt.Errorf("failed to search repositories by name %s: %w", name, err)
+		}
+		for _, repo := range repos.Repositories {
+			repo := gg.Repo{
+				Owner: repo.GetOwner().GetLogin(),
+				Name:  repo.GetName(),
+			}
+			allRepos = append(allRepos, repo)
+		}
+		if resp.NextPage == 0 {
+			break
+		}
+		opts.Page = resp.NextPage
 	}
-	if err = json.Unmarshal([]byte(repoJSONData), &searchResults); err != nil {
-		return nil, err
-	}
-
-	var repos []gg.Repo
-	for _, repoResp := range searchResults {
-		repos = append(repos, gg.Repo{Owner: repoResp.Owner.Login, Name: repoResp.Name})
-	}
-	return repos, nil
-}
-
-// Clone a single repo from GitHub to the specified cloneDir.
-func Clone(cloneDir string, repo gg.Repo, shallowClone bool) error {
-	repoAbsPath := filepath.Join(cloneDir, repo.Owner, repo.Name)
-	if _, err := os.Stat(repoAbsPath); !os.IsNotExist(err) {
-		return fmt.Errorf("repo %s already exists in %s", repo.NameWithOwner(), repoAbsPath)
-	}
-
-	cloneArgs := []string{"repo", "clone", repo.NameWithOwner(), repoAbsPath}
-	if shallowClone {
-		cloneArgs = append(cloneArgs, "--depth", "1")
-	}
-
-	slog.Debug("cloning repo", "cloneArgs", cloneArgs)
-
-	_, err := gh(cloneArgs...)
-	if err != nil {
-		return fmt.Errorf("failed to clone repo %s: %w", repo.NameWithOwner(), err)
-	}
-	return nil
-}
-
-func gh(args ...string) (string, error) {
-	path, err := exec.LookPath("gh")
-	if err != nil {
-		return "", fmt.Errorf("could not find gh executable in PATH. error: %w", err)
-	}
-
-	stdout := bytes.Buffer{}
-	cmd := exec.Command(path, args...)
-	cmd.Stdout = &stdout
-
-	err = cmd.Run()
-	if err != nil {
-		return "", fmt.Errorf("gh failed: %w", err)
-	}
-	return stdout.String(), nil
-}
-
-func Search(owner string, repo string, includeArchived bool, limit int) ([]gg.Repo, error) {
-	var (
-		repos []gg.Repo
-		err   error
-	)
-
-	repoSearchArgs, err := buildGHCommand(owner, repo, includeArchived, limit)
-	if err != nil {
-		return nil, fmt.Errorf("failed to build gh search args: %w", err)
-	}
-
-	githubRepos, err := listRepos(repoSearchArgs)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list github repos: %w", err)
-	}
-
-	if len(githubRepos) == 0 {
-		return nil, errors.New("no github repos found with the provided search criteria")
-	}
-
-	repos, err = fuzzy.Select(githubRepos)
-	if err != nil {
-		return nil, fmt.Errorf("failed to filter repos: %w", err)
-	}
-	return repos, nil
+	return allRepos, nil
 }

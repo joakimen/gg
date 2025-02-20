@@ -2,6 +2,7 @@ package github
 
 import (
 	"cmp"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -9,104 +10,152 @@ import (
 	"sync"
 
 	"github.com/joakimen/gg"
+	"github.com/joakimen/gg/fuzzy"
+	"github.com/joakimen/gg/git"
 	"github.com/joakimen/gg/github"
+	"github.com/joakimen/gg/keyring"
 	"github.com/spf13/cobra"
 )
 
-const repoSearchLimit = 100
-
-type flags struct {
+type cloneFlags struct {
 	Owner           string
 	Repo            string
 	RepoFile        string
 	IncludeArchived bool
-	Limit           int
-	CloneDir        string
+	OutDir          string
 	Shallow         bool
 }
 
-type envs struct {
-	CloneDir string
+type cloneEnvs struct {
+	DefaultGitHubUser string
+	OutDir            string
 }
 
-func loadEnvs() envs {
-	return envs{
-		CloneDir: os.Getenv("GG_CLONE_DIR"),
+func loadCloneEnvs() cloneEnvs {
+	return cloneEnvs{
+		OutDir:            os.Getenv("GG_CLONE_DIR"),
+		DefaultGitHubUser: os.Getenv("GG_GITHUB_USER"),
 	}
 }
 
 func NewCloneCmd() *cobra.Command {
-	var opts flags
+	var flags cloneFlags
 	cloneCmd := &cobra.Command{
 		Use:   "clone",
 		Short: "clone a repo interactively",
-		RunE: func(_ *cobra.Command, _ []string) error {
-			envs := loadEnvs()
-			slog.Debug("clone opts", "opts", opts, "envs", envs)
-			cloneDir := cmp.Or(opts.CloneDir, envs.CloneDir)
-			if cloneDir == "" {
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			envs := loadCloneEnvs()
+			slog.Debug("clone opts", "opts", flags, "envs", envs)
+			outDir := cmp.Or(flags.OutDir, envs.OutDir)
+			if outDir == "" {
 				return fmt.Errorf(
 					"must specify clone directory through --clone-dir or by setting the $GG_CLONE_DIR environment variable",
 				)
 			}
-
-			reposToClone, err := getReposToClone(
-				opts.Owner,
-				opts.Repo,
-				opts.RepoFile,
-				opts.IncludeArchived,
-				opts.Limit,
-			)
+			keyringManager := keyring.NewManager(keyringService, keyringUser)
+			token, err := keyringManager.Get()
 			if err != nil {
-				return fmt.Errorf("failed to get repos to clone: %w", err)
+				return fmt.Errorf("failed to fetch token from keyring: %w", err)
 			}
 
-			if len(reposToClone) == 0 {
-				fmt.Println("no repos selected, exiting")
-				return nil
+			githubService := github.NewService(token)
+			repos, err := getRepos(cmd.Context(), githubService, flags, envs)
+			if err != nil {
+				return fmt.Errorf("failed to fetch repos: %w", err)
 			}
 
-			cloneErrors := clone(cloneDir, reposToClone, opts.Shallow)
+			if len(repos) == 0 {
+				return fmt.Errorf("no repos to clone")
+			}
+
+			cloneErrors := cloneAll(repos, outDir, flags.Shallow)
 			if len(cloneErrors) > 0 {
 				fmt.Fprintln(os.Stderr, "failed to clone some repos:")
-
 				for _, e := range cloneErrors {
 					fmt.Fprintf(os.Stderr, "- %s: %v\n", e.Repo.NameWithOwner(), e.Err)
 				}
 			} else {
 				fmt.Println("all repos cloned successfully!")
 			}
+
 			return nil
 		},
 	}
 
-	cloneCmd.Flags().StringVarP(&opts.Owner, "owner", "o", "", "owner of the repo(s) to clone")
-	cloneCmd.Flags().StringVarP(&opts.Repo, "repo", "r", "", "owner of the repo(s) to clone")
-	cloneCmd.Flags().StringVarP(&opts.RepoFile, "file", "f", "", "name of file containing list of repos to clone")
-	cloneCmd.Flags().StringVarP(&opts.CloneDir, "clone-dir", "d", "", "the output directory of cloned repos")
-	cloneCmd.Flags().BoolVarP(&opts.IncludeArchived, "include-archived", "a", false, "owner of the repo(s) to clone")
-	cloneCmd.Flags().IntVarP(&opts.Limit, "limit", "l", repoSearchLimit, "maximum number of repos to list during search")
+	cloneCmd.Flags().StringVarP(&flags.Owner, "owner", "o", "", "owner of the repo(s) to clone")
+	cloneCmd.Flags().StringVarP(&flags.Repo, "repo", "r", "", "owner of the repo(s) to clone")
+	cloneCmd.Flags().StringVarP(&flags.RepoFile, "file", "f", "", "name of file containing list of repos to clone")
+	cloneCmd.Flags().StringVarP(&flags.OutDir, "out-dir", "d", "", "the output directory of cloned repos")
+	cloneCmd.Flags().BoolVarP(&flags.IncludeArchived, "include-archived", "a", false, "owner of the repo(s) to clone")
 
 	return cloneCmd
 }
 
-func clone(cloneDir string, reposToClone []gg.Repo, shallow bool) []gg.CloneResult {
-	slog.Debug("cloning repos", "cloneDir", cloneDir, "repos", reposToClone)
+func getRepos(ctx context.Context, svc github.Service, flags cloneFlags, envs cloneEnvs) ([]gg.Repo, error) {
+	fuzzyService := fuzzy.NewService()
+
+	var repos []gg.Repo
+	switch {
+	case flags.RepoFile != "":
+		repoJSONData, err := os.ReadFile(flags.RepoFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read repo file: %w", err)
+		}
+		if err = json.Unmarshal(repoJSONData, &repos); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal repos from file: %w", err)
+		}
+		return repos, nil
+	case flags.Owner != "" && flags.Repo != "":
+		repos = []gg.Repo{
+			{
+				Owner: flags.Owner,
+				Name:  flags.Repo,
+			},
+		}
+		return repos, nil
+	case flags.Owner != "":
+		slog.DebugContext(ctx, "listing repos by owner", "owner", flags.Owner)
+		repos, err := svc.ListRepositoriesByUser(ctx, flags.Owner)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list repos by owner: %w", err)
+		}
+		return fuzzyService.Select(repos)
+	case flags.Repo != "":
+		slog.DebugContext(ctx, "searching repos by name", "name", flags.Repo)
+		repos, err := svc.SearchRepositoriesByName(ctx, flags.Repo)
+		if err != nil {
+			return nil, fmt.Errorf("failed to search repos by name: %w", err)
+		}
+		return fuzzyService.Select(repos)
+	default:
+		slog.DebugContext(ctx, "listing repos by default github user", "user", envs.DefaultGitHubUser)
+		if envs.DefaultGitHubUser == "" {
+			return nil, fmt.Errorf("no default GitHub user configured")
+		}
+		repos, err := svc.ListRepositoriesByUser(ctx, envs.DefaultGitHubUser)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list repos by authenticated user: %w", err)
+		}
+		return fuzzyService.Select(repos)
+	}
+}
+
+func cloneAll(repos []gg.Repo, outDir string, shallow bool) []gg.CloneResult {
+	slog.Debug("cloning repos", "outDir", outDir, "repos", repos)
 
 	var wg sync.WaitGroup
-	resultChan := make(chan gg.CloneResult, len(reposToClone))
-	for _, repo := range reposToClone {
+	gitService := git.NewService()
+	resultChan := make(chan gg.CloneResult, len(repos))
+	for _, repo := range repos {
 		wg.Add(1)
 		go func(r gg.Repo) {
 			defer wg.Done()
-			cloneError := github.Clone(cloneDir, repo, shallow)
+			cloneError := gitService.Clone(repo, outDir, shallow)
 			resultChan <- gg.CloneResult{Repo: r, Err: cloneError}
 		}(repo)
 	}
 	wg.Wait()
 	close(resultChan)
-
-	slog.Debug("procesing clone results")
 	var errs []gg.CloneResult
 	for res := range resultChan {
 		if res.Err != nil {
@@ -114,55 +163,4 @@ func clone(cloneDir string, reposToClone []gg.Repo, shallow bool) []gg.CloneResu
 		}
 	}
 	return errs
-}
-
-func readReposFromFile(filepath string) ([]gg.Repo, error) {
-	var reposFromFile []gg.Repo
-	repoJSONData, err := os.ReadFile(filepath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read repo file: %w", err)
-	}
-
-	if err = json.Unmarshal(repoJSONData, &reposFromFile); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal repos from file: %w", err)
-	}
-	return reposFromFile, nil
-}
-
-func getReposToClone(
-	owner string,
-	repo string,
-	repoFile string,
-	includeArchived bool,
-	repoListLimit int,
-) ([]gg.Repo, error) {
-	var (
-		reposToClone []gg.Repo
-		err          error
-	)
-
-	switch {
-	case repoFile != "":
-		slog.Debug("reading repos from file", "file", repoFile)
-		reposToClone, err = readReposFromFile(repoFile)
-		if err != nil {
-			return []gg.Repo{}, fmt.Errorf("couldn't read repos from file: %w", err)
-		}
-	case owner != "" && repo != "":
-		slog.Debug("both owner and repo were provided, cloning single repo", "owner", owner, "repo", repo)
-		reposToClone = []gg.Repo{
-			{
-				Owner: owner,
-				Name:  repo,
-			},
-		}
-	default:
-		slog.Debug("searching github for repos", "owner", owner, "repo", repo)
-		reposToClone, err = github.Search(owner, repo, includeArchived, repoListLimit)
-		if err != nil {
-			return []gg.Repo{}, fmt.Errorf("failed to search for repos: %w", err)
-		}
-	}
-
-	return reposToClone, nil
 }
