@@ -59,7 +59,7 @@ func newRootCmd() *cobra.Command {
 func newGitHubCmd() *cobra.Command {
 	githubCmd := &cobra.Command{
 		Use:   "github",
-		Short: "convenience wrapper for github stuff",
+		Short: "Convenience wrapper for github stuff",
 	}
 
 	githubCmd.AddCommand(

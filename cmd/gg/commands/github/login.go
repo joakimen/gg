@@ -14,7 +14,7 @@ import (
 func NewLoginCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "login",
-		Short: "authenticate to GitHub",
+		Short: "Authenticate to GitHub",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			slog.Debug("reading token from user")
 

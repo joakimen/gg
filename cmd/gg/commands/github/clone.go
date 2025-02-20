@@ -42,7 +42,7 @@ func NewCloneCmd() *cobra.Command {
 	var flags cloneFlags
 	cloneCmd := &cobra.Command{
 		Use:   "clone",
-		Short: "clone a repo interactively",
+		Short: "Clone GitHub repos interactively",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			envs := loadCloneEnvs()
 			slog.Debug("clone opts", "opts", flags, "envs", envs)
