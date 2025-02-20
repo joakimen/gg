@@ -26,5 +26,3 @@ brews:
     commit_author:
       name: goreleaserbot
       email: bot@goreleaser.com
-    dependencies:
-      - name: gh
