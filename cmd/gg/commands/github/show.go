@@ -12,7 +12,7 @@ func NewShowCmd() *cobra.Command {
 		Use:   "show",
 		Short: "Show stored GitHub credentials",
 		RunE: func(_ *cobra.Command, _ []string) error {
-			keyringManager := keyring.NewManager(keyringService, keyringUser)
+			keyringManager := keyring.NewManager(keyringUser)
 			token, err := keyringManager.Get()
 			if err != nil {
 				fmt.Println("No existing credentials found in keyring.")

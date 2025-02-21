@@ -18,7 +18,7 @@ func NewLoginCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			slog.Debug("reading token from user")
 
-			keyringManager := keyring.NewManager(keyringService, keyringUser)
+			keyringManager := keyring.NewManager(keyringUser)
 			inputToken, err := readPassword("Enter your GitHub API token: ")
 			if err != nil {
 				return fmt.Errorf("failed to read token: %w", err)

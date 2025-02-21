@@ -7,14 +7,16 @@ import (
 	"github.com/zalando/go-keyring"
 )
 
+const keyringService = "gg"
+
 type Manager struct {
 	service string
 	user    string
 }
 
-func NewManager(service string, user string) *Manager {
+func NewManager(user string) *Manager {
 	return &Manager{
-		service: service,
+		service: keyringService,
 		user:    user,
 	}
 }

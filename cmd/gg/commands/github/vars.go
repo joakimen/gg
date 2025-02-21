@@ -1,6 +1,3 @@
 package github
 
-const (
-	keyringService = "gg"
-	keyringUser    = "github"
-)
+const keyringUser = "github"

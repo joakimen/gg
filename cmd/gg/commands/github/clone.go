@@ -52,7 +52,7 @@ func NewCloneCmd() *cobra.Command {
 					"must specify clone directory through --clone-dir or by setting the $GG_CLONE_DIR environment variable",
 				)
 			}
-			keyringManager := keyring.NewManager(keyringService, keyringUser)
+			keyringManager := keyring.NewManager(keyringUser)
 			token, err := keyringManager.Get()
 			if err != nil {
 				return fmt.Errorf("failed to fetch token from keyring: %w", err)

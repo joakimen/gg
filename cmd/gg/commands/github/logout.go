@@ -12,7 +12,7 @@ func NewLogoutCmd() *cobra.Command {
 		Use:   "logout",
 		Short: "Clear stored GitHub credentials",
 		RunE: func(_ *cobra.Command, _ []string) error {
-			keyringManager := keyring.NewManager(keyringService, keyringUser)
+			keyringManager := keyring.NewManager(keyringUser)
 			err := keyringManager.Delete()
 			if err != nil {
 				return fmt.Errorf("failed to clear existing github credentials from keyring: %w", err)
