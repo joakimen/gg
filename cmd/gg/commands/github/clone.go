@@ -45,7 +45,7 @@ func NewCloneCmd() *cobra.Command {
 		Short: "Clone GitHub repos interactively",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			envs := loadCloneEnvs()
-			slog.Debug("clone opts", "opts", flags, "envs", envs)
+			slog.Debug("cloning repositories", "opts", flags, "envs", envs)
 			outDir := cmp.Or(flags.OutDir, envs.OutDir)
 			if outDir == "" {
 				return fmt.Errorf(
