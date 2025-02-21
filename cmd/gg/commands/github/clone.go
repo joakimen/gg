@@ -68,6 +68,7 @@ func NewCloneCmd() *cobra.Command {
 				return fmt.Errorf("no repos to clone")
 			}
 
+			fmt.Printf("cloning %d repos(s)..\n", len(repos))
 			cloneErrors := cloneAll(repos, outDir, flags.Shallow)
 			if len(cloneErrors) > 0 {
 				fmt.Fprintln(os.Stderr, "failed to clone some repos:")
