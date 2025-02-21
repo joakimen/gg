@@ -10,6 +10,8 @@ import (
 	"github.com/joakimen/gg"
 )
 
+const repoPerPage = 100
+
 type Service struct {
 	Client *github.Client
 }
@@ -38,7 +40,7 @@ func (s *Service) GetAuthenticatedUser(ctx context.Context) (gg.GitHubUser, erro
 
 func (s *Service) ListRepositoriesByUser(ctx context.Context, user string) ([]gg.Repo, error) {
 	opts := &github.RepositoryListByUserOptions{
-		ListOptions: github.ListOptions{PerPage: 100},
+		ListOptions: github.ListOptions{PerPage: repoPerPage},
 	}
 	var allRepos []gg.Repo
 	for {
@@ -63,7 +65,7 @@ func (s *Service) ListRepositoriesByUser(ctx context.Context, user string) ([]gg
 
 func (s *Service) SearchRepositoriesByName(ctx context.Context, name string) ([]gg.Repo, error) {
 	opts := &github.SearchOptions{
-		ListOptions: github.ListOptions{PerPage: 100},
+		ListOptions: github.ListOptions{PerPage: repoPerPage},
 	}
 	var allRepos []gg.Repo
 	for {
