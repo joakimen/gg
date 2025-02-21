@@ -87,6 +87,7 @@ func NewCloneCmd() *cobra.Command {
 	cloneCmd.Flags().StringVarP(&flags.RepoFile, "file", "f", "", "name of file containing list of repos to clone")
 	cloneCmd.Flags().StringVarP(&flags.OutDir, "out-dir", "d", "", "the output directory of cloned repos")
 	cloneCmd.Flags().BoolVarP(&flags.IncludeArchived, "include-archived", "a", false, "owner of the repo(s) to clone")
+	cloneCmd.Flags().BoolVarP(&flags.Shallow, "shallow", "", false, "perform a shallow clone")
 
 	return cloneCmd
 }
