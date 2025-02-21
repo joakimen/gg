@@ -20,4 +20,4 @@ pre-commit:
       run: yamllint {staged_files}
     - name: json-lint
       glob: "*.json"
-      run: jsonlint {staged_files} --check
+      run: jsonlint {staged_files} --no-duplicate-keys --compact --quiet
