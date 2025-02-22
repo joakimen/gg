@@ -73,7 +73,7 @@ func NewCloneCmd() *cobra.Command {
 			if len(cloneErrors) > 0 {
 				fmt.Fprintln(os.Stderr, "failed to clone some repos:")
 				for _, e := range cloneErrors {
-					fmt.Fprintf(os.Stderr, "- %s: %v\n", e.Repo.NameWithOwner(), e.Err)
+					fmt.Fprintf(os.Stderr, "- %s/%s: %v\n", e.Repo.Owner, e.Repo.Name, e.Err)
 				}
 			} else {
 				fmt.Println("all repos cloned successfully!")

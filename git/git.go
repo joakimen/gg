@@ -19,7 +19,7 @@ func NewService() *Service {
 func (s *Service) Clone(repo gg.Repo, outDir string, shallow bool) error {
 	outDirAbs := filepath.Join(outDir, repo.Owner, repo.Name)
 	if _, err := os.Stat(outDirAbs); !os.IsNotExist(err) {
-		return fmt.Errorf("repo %s already exists in %s", repo.NameWithOwner(), outDirAbs)
+		return fmt.Errorf("repo %s/%s already exists in %s", repo.Owner, repo.Name, outDirAbs)
 	}
 
 	cloneURL := fmt.Sprintf("https://github.com/%s/%s.git", repo.Owner, repo.Name)

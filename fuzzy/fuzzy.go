@@ -16,7 +16,8 @@ func NewService() *Service {
 // Select provides fuzzy single- or multi-selection for repos.
 func (s *Service) Select(repos []gg.Repo) ([]gg.Repo, error) {
 	renderFunc := func(selectedIndex int) string {
-		return repos[selectedIndex].NameWithOwner()
+		repo := repos[selectedIndex]
+		return fmt.Sprintf("%s/%s", repo.Owner, repo.Name)
 	}
 	indices, err := fz.FindMulti(repos, renderFunc)
 	if err != nil {

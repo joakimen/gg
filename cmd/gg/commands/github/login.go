@@ -38,7 +38,7 @@ func NewLoginCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("failed to store token in keyring: %w", err)
 			}
-			fmt.Println("Authenticated successfully as user:", user.Login)
+			fmt.Println("Authenticated successfully as user:", user)
 			return nil
 		},
 	}

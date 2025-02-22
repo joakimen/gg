@@ -26,16 +26,12 @@ func NewService(authToken string) Service {
 	}
 }
 
-func (s *Service) GetAuthenticatedUser(ctx context.Context) (gg.GitHubUser, error) {
+func (s *Service) GetAuthenticatedUser(ctx context.Context) (string, error) {
 	user, _, err := s.Client.Users.Get(ctx, "")
 	if err != nil {
-		return gg.GitHubUser{}, fmt.Errorf("failed to get the authenticated user: %w", err)
+		return "", fmt.Errorf("failed to get the authenticated user: %w", err)
 	}
-
-	mappedUser := gg.GitHubUser{
-		Login: user.GetLogin(),
-	}
-	return mappedUser, nil
+	return user.GetLogin(), nil
 }
 
 func (s *Service) ListRepositoriesByUser(ctx context.Context, user string) ([]gg.Repo, error) {
