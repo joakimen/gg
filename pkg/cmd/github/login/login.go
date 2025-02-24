@@ -1,4 +1,4 @@
-package github
+package login
 
 import (
 	"fmt"
@@ -11,14 +11,14 @@ import (
 	"golang.org/x/term"
 )
 
-func NewLoginCmd() *cobra.Command {
+func NewCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "login",
 		Short: "Authenticate to GitHub",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			slog.Debug("reading token from user")
 
-			keyringManager := keyring.NewManager(keyringUser)
+			keyringManager := keyring.NewManager(github.KeyringUser)
 			inputToken, err := readPassword("Enter your GitHub API token: ")
 			if err != nil {
 				return fmt.Errorf("failed to read token: %w", err)

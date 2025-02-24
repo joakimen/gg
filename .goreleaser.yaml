@@ -11,8 +11,10 @@ builds:
     goos:
       - linux
       - darwin
+    ldflags:
+      - -s -w -X github.com/joakimen/gg/internal/build.Version={{.Version}}
 archives:
-  - formats: ['binary']
+  - formats: ["binary"]
 
 changelog:
   sort: asc

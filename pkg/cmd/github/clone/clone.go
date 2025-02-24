@@ -1,4 +1,4 @@
-package github
+package clone
 
 import (
 	"cmp"
@@ -31,20 +31,20 @@ type cloneEnvs struct {
 	OutDir            string
 }
 
-func loadCloneEnvs() cloneEnvs {
+func loadEnvs() cloneEnvs {
 	return cloneEnvs{
 		OutDir:            os.Getenv("GG_CLONE_DIR"),
 		DefaultGitHubUser: os.Getenv("GG_GITHUB_USER"),
 	}
 }
 
-func NewCloneCmd() *cobra.Command {
+func NewCmd() *cobra.Command {
 	var flags cloneFlags
 	cloneCmd := &cobra.Command{
 		Use:   "clone",
 		Short: "Clone GitHub repos interactively",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			envs := loadCloneEnvs()
+			envs := loadEnvs()
 			slog.Debug("cloning repositories", "opts", flags, "envs", envs)
 			outDir := cmp.Or(flags.OutDir, envs.OutDir)
 			if outDir == "" {
@@ -52,7 +52,7 @@ func NewCloneCmd() *cobra.Command {
 					"must specify clone directory through --clone-dir or by setting the $GG_CLONE_DIR environment variable",
 				)
 			}
-			keyringManager := keyring.NewManager(keyringUser)
+			keyringManager := keyring.NewManager(github.KeyringUser)
 			token, err := keyringManager.Get()
 			if err != nil {
 				return fmt.Errorf("failed to fetch token from keyring: %w", err)

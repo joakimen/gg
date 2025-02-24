@@ -10,7 +10,10 @@ import (
 	"github.com/joakimen/gg"
 )
 
-const repoPerPage = 100
+const (
+	KeyringUser = "github"
+	repoPerPage = 100
+)
 
 type Service struct {
 	Client *github.Client
