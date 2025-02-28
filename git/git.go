@@ -10,13 +10,13 @@ import (
 	"github.com/joakimen/gg"
 )
 
-type Service struct{}
+type Client struct{}
 
-func NewService() *Service {
-	return &Service{}
+func NewClient() *Client {
+	return &Client{}
 }
 
-func (s *Service) Clone(repo gg.Repo, outDir string, shallow bool) error {
+func (s *Client) Clone(repo gg.Repo, outDir string, shallow bool) error {
 	outDirAbs := filepath.Join(outDir, repo.Owner, repo.Name)
 	if _, err := os.Stat(outDirAbs); !os.IsNotExist(err) {
 		return fmt.Errorf("repo %s/%s already exists in %s", repo.Owner, repo.Name, outDirAbs)

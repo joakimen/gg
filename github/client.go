@@ -15,21 +15,21 @@ const (
 	repoPerPage = 100
 )
 
-type Service struct {
+type Client struct {
 	Client *github.Client
 }
 
-func NewService(authToken string) Service {
+func NewClient(authToken string) Client {
 	timeoutSeconds := 10
 	httpClient := &http.Client{
 		Timeout: time.Duration(timeoutSeconds) * time.Second,
 	}
-	return Service{
+	return Client{
 		Client: github.NewClient(httpClient).WithAuthToken(authToken),
 	}
 }
 
-func (s *Service) GetAuthenticatedUser(ctx context.Context) (string, error) {
+func (s *Client) GetAuthenticatedUser(ctx context.Context) (string, error) {
 	user, _, err := s.Client.Users.Get(ctx, "")
 	if err != nil {
 		return "", fmt.Errorf("failed to get the authenticated user: %w", err)
@@ -37,7 +37,7 @@ func (s *Service) GetAuthenticatedUser(ctx context.Context) (string, error) {
 	return user.GetLogin(), nil
 }
 
-func (s *Service) ListRepositoriesByUser(ctx context.Context, user string) ([]gg.Repo, error) {
+func (s *Client) ListRepositoriesByUser(ctx context.Context, user string) ([]gg.Repo, error) {
 	opts := &github.RepositoryListByUserOptions{
 		ListOptions: github.ListOptions{PerPage: repoPerPage},
 	}
@@ -62,7 +62,7 @@ func (s *Service) ListRepositoriesByUser(ctx context.Context, user string) ([]gg
 	return allRepos, nil
 }
 
-func (s *Service) SearchRepositoriesByName(ctx context.Context, name string) ([]gg.Repo, error) {
+func (s *Client) SearchRepositoriesByName(ctx context.Context, name string) ([]gg.Repo, error) {
 	opts := &github.SearchOptions{
 		ListOptions: github.ListOptions{PerPage: repoPerPage},
 	}
