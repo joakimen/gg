@@ -7,13 +7,7 @@ import (
 	"golang.org/x/term"
 )
 
-type PasswordProvider struct{}
-
-func NewPasswordProvider() *PasswordProvider {
-	return &PasswordProvider{}
-}
-
-func (pp *PasswordProvider) ReadPassword(prompt string) (string, error) {
+func ReadPassword(prompt string) (string, error) {
 	fmt.Print(prompt)
 	bytepw, err := term.ReadPassword(syscall.Stdin)
 	if err != nil {

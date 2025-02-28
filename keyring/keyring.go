@@ -9,26 +9,26 @@ import (
 
 const keyringService = "gg"
 
-type Manager struct {
+type Keyring struct {
 	service string
 	user    string
 }
 
-func NewManager(user string) *Manager {
-	return &Manager{
+func New(user string) *Keyring {
+	return &Keyring{
 		service: keyringService,
 		user:    user,
 	}
 }
 
-func (m *Manager) Get() (string, error) {
+func (m *Keyring) Get() (string, error) {
 	return keyring.Get(m.service, m.user)
 }
 
-func (m *Manager) Set(val string) error {
+func (m *Keyring) Set(val string) error {
 	return keyring.Set(m.service, m.user, val)
 }
 
-func (m *Manager) Delete() error {
+func (m *Keyring) Delete() error {
 	return keyring.Delete(m.service, m.user)
 }
