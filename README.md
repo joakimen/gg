@@ -25,32 +25,30 @@ go install github.com/joakimen/gg/cmd/gg@latest
 ## Usage
 
 ```shell
-$ gg
-Usage: gg <command> [flags]
+Convenience cli for everyday things
 
-Interactive GitHub repo cloning
+Usage:
+  gg [command]
+
+Available Commands:
+  completion  Generate the autocompletion script for the specified shell
+  github      Convenience wrapper for github stuff
+  help        Help about any command
+  version     Print the version information
 
 Flags:
-  -h, --help     Show context-sensitive help.
-      --debug    Enable debug logging
+      --debug   Enable debug logging
+  -h, --help    help for gg
 
-Commands:
-  version    Print version number
-  clone      Clone one or more repos
-
-Run "gg <command> --help" for more information on a command.
-
-gg: error: expected one of "version", "clone"
+Use "gg [command] --help" for more information about a command.
 ```
 
 ## GitHub Authentication
 
-This CLI currently uses the `gh` CLI to clone repositories. You will need to authenticate with GitHub before using this CLI.
-
-Authenticating to GitHub:
+GitHub Authentication is done by providing the CLI a GitHub token, which is stored in the system keyring and used for subsequent requests.
 
 ```bash
-gh auth login
+gg github login
 ```
 
 ## Development
