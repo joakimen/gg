@@ -1,10 +1,13 @@
 package gg
 
-import "context"
+import (
+	"context"
+)
 
 type Repo struct {
-	Owner string `json:"owner"`
-	Name  string `json:"name"`
+	Owner    string `json:"owner"`
+	Name     string `json:"name"`
+	Archived bool   `json:"archived"`
 }
 
 type CloneResult struct {
@@ -12,26 +15,45 @@ type CloneResult struct {
 	Err  error `json:"err"`
 }
 
-type KeyringService interface {
+type KeyringProvider interface {
 	Get() (string, error)
 	Set(string) error
 	Delete() error
 }
 
-type TTY interface {
+type TTYProvider interface {
 	Read(string) (string, error)
 }
 
-type GitHubService interface {
-	GetAuthenticatedUser(context.Context) (string, error)
-	ListRepositoriesByUser(context.Context, string) ([]Repo, error)
-	SearchRepositoriesByName(context.Context, string) ([]Repo, error)
+type GitHubClient interface {
+	GetAuthenticatedUser(ctx context.Context) (string, error)
+	ListRepositoriesByUser(ctx context.Context, user string) ([]Repo, error)
+	SearchRepositoriesByName(ctx context.Context, name string) ([]Repo, error)
+	Clone(ctx context.Context, git GitClient, repos []Repo, outDir string, shallow bool) error
+	FindRepos(ctx context.Context, opts FindRepoOpts) ([]Repo, error)
 }
 
-type GitService interface {
+type GitHubClientFactory func(token string) GitHubClient
+
+type GitHubCommand interface {
+	Run(context.Context) error
+}
+
+type GitClient interface {
 	Clone(Repo, string, bool) error
 }
 
 type RepoFuzzyProvider interface {
 	Select([]Repo) ([]Repo, error)
+}
+
+type FindRepoOpts struct {
+	RepoFilter        RepoFuzzyProvider
+	Owner             string
+	Repo              string
+	OutDir            string
+	Shallow           bool
+	RepoFile          string
+	DefaultGitHubUser string
+	IncludeArchived   bool
 }

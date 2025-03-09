@@ -10,6 +10,8 @@ import (
 	"github.com/joakimen/gg"
 )
 
+var _ gg.GitClient = (*Client)(nil)
+
 type Client struct{}
 
 func NewClient() *Client {

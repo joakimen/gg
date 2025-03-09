@@ -1,15 +1,16 @@
 package cli
 
 import (
-	"cmp"
-	"context"
 	"fmt"
-	"os"
 
 	"github.com/joakimen/gg/fuzzy"
 	"github.com/joakimen/gg/git"
 	"github.com/joakimen/gg/github"
 	"github.com/joakimen/gg/keyring"
+	"github.com/joakimen/gg/pkg/commands/github/clone"
+	"github.com/joakimen/gg/pkg/commands/github/login"
+	"github.com/joakimen/gg/pkg/commands/github/logout"
+	"github.com/joakimen/gg/pkg/commands/github/show"
 	"github.com/joakimen/gg/tty"
 	"github.com/spf13/cobra"
 )
@@ -27,21 +28,34 @@ func newGitHubCmd() *cobra.Command {
 			Use:   "login",
 			Short: "Authenticate to GitHub",
 			RunE: func(cmd *cobra.Command, _ []string) error {
-				return githubLogin(cmd.Context())
+				loginCmd := &login.Command{
+					Keyring:       keyring.New(githubKeyring),
+					ClientFactory: github.ClientFactory,
+					TTY:           tty.NewProvider(),
+				}
+				return loginCmd.Run(cmd.Context())
 			},
 		},
 		{
 			Use:   "logout",
 			Short: "Clear stored GitHub credentials",
-			RunE: func(_ *cobra.Command, _ []string) error {
-				return githubLogout()
+			RunE: func(cmd *cobra.Command, _ []string) error {
+				logoutCmd := &logout.Command{
+					Keyring: keyring.New(githubKeyring),
+				}
+				return logoutCmd.Run(cmd.Context())
 			},
 		},
 		{
 			Use:   "show",
 			Short: "Show stored GitHub credentials",
-			RunE: func(_ *cobra.Command, _ []string) error {
-				return githubShow()
+
+			RunE: func(cmd *cobra.Command, _ []string) error {
+				keyring := keyring.New(githubKeyring)
+				showCmd := &show.Command{
+					Keyring: keyring,
+				}
+				return showCmd.Run(cmd.Context())
 			},
 		},
 		newGitHubCloneCmd(),
@@ -65,14 +79,26 @@ func newGitHubCloneCmd() *cobra.Command {
 		Use:   "clone",
 		Short: "Clone GitHub repos interactively",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return githubClone(
-				cmd.Context(),
-				flags.owner,
-				flags.repo,
-				flags.outDir,
-				flags.shallow,
-				flags.repoFile,
-			)
+			keyring := keyring.New(githubKeyring)
+			token, err := keyring.Get()
+			if err != nil {
+				return fmt.Errorf("failed to get token: %w", err)
+			}
+			cloneCmd := &clone.Command{
+				GitHubClient: github.NewClient(token),
+				GitClient:    git.NewClient(),
+				Fuzzy:        fuzzy.NewProvider(),
+			}
+
+			cloneFlags := clone.Flags{
+				Owner:           flags.owner,
+				Repo:            flags.repo,
+				OutDir:          flags.outDir,
+				Shallow:         flags.shallow,
+				RepoFile:        flags.repoFile,
+				IncludeArchived: flags.includeArchived,
+			}
+			return cloneCmd.Run(cmd.Context(), cloneFlags)
 		},
 	}
 
@@ -84,100 +110,4 @@ func newGitHubCloneCmd() *cobra.Command {
 	cmd.Flags().BoolVarP(&flags.shallow, "shallow", "", false, "perform a shallow clone")
 
 	return cmd
-}
-
-func githubLogin(ctx context.Context) error {
-	keyring := keyring.New(githubKeyring)
-
-	// read user token
-	token, err := tty.ReadPassword("Enter your GitHub API token: ")
-	if err != nil {
-		return err
-	}
-
-	if token == "" {
-		return fmt.Errorf("the provided token cannot be empty")
-	}
-
-	// test user token
-	client := github.NewClient(token)
-	userLogin, err := client.GetAuthenticatedUser(ctx)
-	if err != nil {
-		return err
-	}
-
-	fmt.Println("Successfully authenticated as user:", userLogin)
-
-	// if token is valid, store it
-	err = keyring.Set(token)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func githubLogout() error {
-	fmt.Println("Deleting stored github credentials from system keyring..")
-	keyring := keyring.New("github")
-	err := keyring.Delete()
-	if err != nil {
-		return fmt.Errorf("failed to delete github credentals: %w", err)
-	}
-	fmt.Println("Done.")
-	return nil
-}
-
-func githubShow() error {
-	keyring := keyring.New("github")
-	token, err := keyring.Get()
-	if err != nil {
-		return fmt.Errorf("failed to delete github credentals: %w", err)
-	}
-	fmt.Println(token)
-	return nil
-}
-
-func githubClone(
-	ctx context.Context,
-	owner string,
-	repo string,
-	outDirFlag string,
-	shallow bool,
-	repoFile string,
-) error {
-	var (
-		defaultGitHubUser = os.Getenv("GG_GITHUB_USER")
-		outDirEnv         = os.Getenv("GG_CLONE_DIR")
-		outDir            = cmp.Or(outDirFlag, outDirEnv)
-	)
-	if outDir == "" {
-		return fmt.Errorf("must specify clone directory")
-	}
-
-	keyring := keyring.New(githubKeyring)
-	token, err := keyring.Get()
-	if err != nil {
-		return err
-	}
-
-	githubClient := github.NewClient(token)
-	repoFilter := fuzzy.NewProvider()
-
-	repos, err := githubClient.FindRepos(
-		ctx, github.FindRepoOpts{
-			RepoFilter:        repoFilter,
-			Owner:             owner,
-			Repo:              repo,
-			OutDir:            outDir,
-			Shallow:           shallow,
-			RepoFile:          repoFile,
-			DefaultGitHubUser: defaultGitHubUser,
-		})
-	if err != nil {
-		return fmt.Errorf("failed to find repos to clone using the provided args: %w", err)
-	}
-
-	gitClient := git.NewClient()
-	return githubClient.Clone(ctx, gitClient, repos, outDir, shallow)
 }

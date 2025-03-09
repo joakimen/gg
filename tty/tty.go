@@ -4,10 +4,19 @@ import (
 	"fmt"
 	"syscall"
 
+	"github.com/joakimen/gg"
 	"golang.org/x/term"
 )
 
-func ReadPassword(prompt string) (string, error) {
+var _ gg.TTYProvider = (*Provider)(nil)
+
+type Provider struct{}
+
+func NewProvider() *Provider {
+	return &Provider{}
+}
+
+func (tty *Provider) Read(prompt string) (string, error) {
 	fmt.Print(prompt)
 	bytepw, err := term.ReadPassword(syscall.Stdin)
 	if err != nil {

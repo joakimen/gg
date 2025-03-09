@@ -4,8 +4,12 @@
 package keyring
 
 import (
+	"github.com/joakimen/gg"
 	"github.com/zalando/go-keyring"
 )
+
+// Ensure Keyring implements KeyringProvider.
+var _ gg.KeyringProvider = (*Keyring)(nil)
 
 const keyringService = "gg"
 
@@ -32,3 +36,5 @@ func (m *Keyring) Set(val string) error {
 func (m *Keyring) Delete() error {
 	return keyring.Delete(m.service, m.user)
 }
+
+// KeyringProvider is the interface that wraps the basic keyring methods.
