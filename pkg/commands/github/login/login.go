@@ -3,6 +3,7 @@ package login
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/joakimen/gg"
 )
@@ -21,7 +22,8 @@ func (c *Command) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if token == "" {
+
+	if strings.TrimSpace(token) == "" {
 		return fmt.Errorf("the provided token cannot be empty")
 	}
 
