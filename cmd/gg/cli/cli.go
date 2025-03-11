@@ -18,8 +18,9 @@ func newRootCmd() *cobra.Command {
 		Debug bool
 	}
 	rootCmd := &cobra.Command{
-		Use:   "gg",
-		Short: "Convenience cli for everyday things",
+		Use:          "gg",
+		Short:        "Convenience cli for everyday things",
+		SilenceUsage: true,
 		PersistentPreRun: func(_ *cobra.Command, _ []string) {
 			if opts.Debug {
 				enableDebugLogging()
