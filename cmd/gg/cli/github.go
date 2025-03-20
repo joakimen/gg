@@ -1,72 +1,42 @@
 package cli
 
 import (
-	"fmt"
-
-	"github.com/joakimen/gg/fuzzy"
-	"github.com/joakimen/gg/git"
 	"github.com/joakimen/gg/github"
-	"github.com/joakimen/gg/keyring"
-	"github.com/joakimen/gg/pkg/commands/github/clone"
-	"github.com/joakimen/gg/pkg/commands/github/login"
-	"github.com/joakimen/gg/pkg/commands/github/logout"
-	"github.com/joakimen/gg/pkg/commands/github/show"
-	"github.com/joakimen/gg/tty"
 	"github.com/spf13/cobra"
 )
 
-const githubKeyring = "github"
-
-func newGitHubCmd() *cobra.Command {
-	githubCmd := &cobra.Command{
-		Use:   "github",
-		Short: "Convenience wrapper for github stuff",
+func newGitHubLoginCmd(gh *github.Service) *cobra.Command {
+	return &cobra.Command{
+		Use:   "login",
+		Short: "Authenticate to GitHub",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return gh.Login(cmd.Context())
+		},
 	}
-
-	subcommands := []*cobra.Command{
-		{
-			Use:   "login",
-			Short: "Authenticate to GitHub",
-			RunE: func(cmd *cobra.Command, _ []string) error {
-				loginCmd := &login.Command{
-					Keyring:       keyring.New(githubKeyring),
-					ClientFactory: github.ClientFactory,
-					TTY:           tty.NewProvider(),
-				}
-				return loginCmd.Run(cmd.Context())
-			},
-		},
-		{
-			Use:   "logout",
-			Short: "Clear stored GitHub credentials",
-			RunE: func(cmd *cobra.Command, _ []string) error {
-				logoutCmd := &logout.Command{
-					Keyring: keyring.New(githubKeyring),
-				}
-				return logoutCmd.Run(cmd.Context())
-			},
-		},
-		{
-			Use:   "show",
-			Short: "Show stored GitHub credentials",
-
-			RunE: func(cmd *cobra.Command, _ []string) error {
-				keyring := keyring.New(githubKeyring)
-				showCmd := &show.Command{
-					Keyring: keyring,
-				}
-				return showCmd.Run(cmd.Context())
-			},
-		},
-		newGitHubCloneCmd(),
-	}
-
-	githubCmd.AddCommand(subcommands...)
-
-	return githubCmd
 }
 
-func newGitHubCloneCmd() *cobra.Command {
+func newGitHubLogoutCmd(gh *github.Service) *cobra.Command {
+	return &cobra.Command{
+		Use:   "logout",
+		Short: "Clear stored GitHub credentials",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return gh.Logout(cmd.Context())
+		},
+	}
+}
+
+func newGitHubShowCmd(gh *github.Service) *cobra.Command {
+	return &cobra.Command{
+		Use:   "show",
+		Short: "Show stored GitHub credentials",
+
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return gh.Show(cmd.Context())
+		},
+	}
+}
+
+func newGitHubCloneCmd(gh *github.Service) *cobra.Command {
 	var flags struct {
 		owner           string
 		repo            string
@@ -79,18 +49,7 @@ func newGitHubCloneCmd() *cobra.Command {
 		Use:   "clone",
 		Short: "Clone GitHub repos interactively",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			keyring := keyring.New(githubKeyring)
-			token, err := keyring.Get()
-			if err != nil {
-				return fmt.Errorf("failed to get token: %w", err)
-			}
-			cloneCmd := &clone.Command{
-				GitHubClient: github.NewClient(token),
-				GitClient:    git.NewClient(),
-				Fuzzy:        fuzzy.NewProvider(),
-			}
-
-			cloneFlags := clone.Flags{
+			cloneFlags := github.CloneFlags{
 				Owner:           flags.owner,
 				Repo:            flags.repo,
 				OutDir:          flags.outDir,
@@ -98,7 +57,7 @@ func newGitHubCloneCmd() *cobra.Command {
 				RepoFile:        flags.repoFile,
 				IncludeArchived: flags.includeArchived,
 			}
-			return cloneCmd.Run(cmd.Context(), cloneFlags)
+			return gh.Clone(cmd.Context(), cloneFlags)
 		},
 	}
 

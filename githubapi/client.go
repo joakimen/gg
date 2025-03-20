@@ -1,4 +1,4 @@
-package github
+package githubapi
 
 import (
 	"context"
@@ -19,17 +19,18 @@ const (
 	clientTimeoutSeconds = 10
 )
 
-// ensure types satisfy interfaces.
+// ensure types satisfy their interfaces.
 var (
-	_ gg.GitHubClient        = (*Client)(nil)
-	_ gg.GitHubClientFactory = NewClient
+	_ gg.GitHubClient = (*Client)(nil)
 )
 
 type Client struct {
 	api *github.Client
 }
 
-func NewClient(token string) gg.GitHubClient {
+// TokenClientProvider is a function used to provide instantiation of a GitHub client outside of
+// this package to preserve isolation of the go-github dependency in this package.
+var TokenClientProvider gg.GitHubClientProvider = func(token string) gg.GitHubClient {
 	httpClient := &http.Client{
 		Timeout: time.Duration(clientTimeoutSeconds) * time.Second,
 	}
@@ -38,8 +39,6 @@ func NewClient(token string) gg.GitHubClient {
 		api: githubClient,
 	}
 }
-
-var ClientFactory gg.GitHubClientFactory = NewClient
 
 func (c *Client) GetAuthenticatedUser(ctx context.Context) (string, error) {
 	user, _, err := c.api.Users.Get(ctx, "")
@@ -185,7 +184,7 @@ func (c *Client) FindRepos(ctx context.Context, opts gg.FindRepoOpts) ([]gg.Repo
 			}
 		}
 
-		repos, err := opts.RepoFilter.Select(includedRepos)
+		repos, err := opts.RepoSelector.Select(includedRepos)
 		if err != nil {
 			return nil, fmt.Errorf("error while filtering repos: %w", err)
 		}
@@ -199,7 +198,7 @@ func (c *Client) FindRepos(ctx context.Context, opts gg.FindRepoOpts) ([]gg.Repo
 		if err != nil {
 			return nil, err
 		}
-		repos, err := opts.RepoFilter.Select(allRepos)
+		repos, err := opts.RepoSelector.Select(allRepos)
 		if err != nil {
 			return nil, err
 		}
@@ -216,5 +215,5 @@ func (c *Client) FindRepos(ctx context.Context, opts gg.FindRepoOpts) ([]gg.Repo
 		return nil, err
 	}
 
-	return opts.RepoFilter.Select(allRepos)
+	return opts.RepoSelector.Select(allRepos)
 }

@@ -33,22 +33,18 @@ type GitHubClient interface {
 	FindRepos(ctx context.Context, opts FindRepoOpts) ([]Repo, error)
 }
 
-type GitHubClientFactory func(token string) GitHubClient
-
-type GitHubCommand interface {
-	Run(context.Context) error
-}
+type GitHubClientProvider func(token string) GitHubClient
 
 type GitClient interface {
 	Clone(Repo, string, bool) error
 }
 
-type RepoFuzzyProvider interface {
+type RepoSelector interface {
 	Select([]Repo) ([]Repo, error)
 }
 
 type FindRepoOpts struct {
-	RepoFilter        RepoFuzzyProvider
+	RepoSelector      RepoSelector
 	Owner             string
 	Repo              string
 	OutDir            string
