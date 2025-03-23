@@ -1,9 +1,12 @@
 module github.com/joakimen/gg
 
-go 1.23
+go 1.23.0
+
+toolchain go1.24.1
 
 require (
 	github.com/google/go-github/v69 v69.2.0
+	github.com/google/go-github/v70 v70.0.0
 	github.com/ktr0731/go-fuzzyfinder v0.8.0
 	github.com/zalando/go-keyring v0.2.6
 )
