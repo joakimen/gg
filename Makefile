@@ -9,7 +9,6 @@ SHELL = /usr/bin/env bash -o pipefail
 
 BIN=./bin/gg
 MAINPRG=./cmd/gg
-GH_API_SPEC=https://raw.githubusercontent.com/github/rest-api-description/refs/heads/main/descriptions/api.github.com/api.github.com.json
 
 .PHONY: all
 all: build

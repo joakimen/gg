@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"github.com/joakimen/gg"
 	"github.com/joakimen/gg/github"
 	"github.com/spf13/cobra"
 )
@@ -36,6 +37,7 @@ func newGitHubShowCmd(gh *github.Service) *cobra.Command {
 	}
 }
 
+// TODO: refactor/split to separate finding and cloning repos
 func newGitHubCloneCmd(gh *github.Service) *cobra.Command {
 	var flags struct {
 		owner           string
@@ -49,7 +51,7 @@ func newGitHubCloneCmd(gh *github.Service) *cobra.Command {
 		Use:   "clone",
 		Short: "Clone GitHub repos interactively",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			cloneFlags := github.CloneFlags{
+			cloneFlags := gg.CloneFlags{
 				Owner:           flags.owner,
 				Repo:            flags.repo,
 				OutDir:          flags.outDir,
@@ -57,6 +59,7 @@ func newGitHubCloneCmd(gh *github.Service) *cobra.Command {
 				RepoFile:        flags.repoFile,
 				IncludeArchived: flags.includeArchived,
 			}
+
 			return gh.Clone(cmd.Context(), cloneFlags)
 		},
 	}

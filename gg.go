@@ -15,28 +15,41 @@ type CloneResult struct {
 	Err  error `json:"err"`
 }
 
+type CloneFlags struct {
+	Owner           string
+	Repo            string
+	OutDir          string
+	Shallow         bool
+	RepoFile        string
+	IncludeArchived bool
+}
+
 type KeyringProvider interface {
 	Get() (string, error)
 	Set(string) error
 	Delete() error
 }
 
-type TTYProvider interface {
-	Read(string) (string, error)
+type InputReader func() (string, error)
+
+type GitHubService interface {
+	Login(ctx context.Context) error
+	Logout(ctx context.Context) error
+	Show(ctx context.Context) error
+	Clone(ctx context.Context, flags CloneFlags) error
 }
 
 type GitHubClient interface {
 	GetAuthenticatedUser(ctx context.Context) (string, error)
 	ListRepositoriesByUser(ctx context.Context, user string) ([]Repo, error)
 	SearchRepositoriesByName(ctx context.Context, name string) ([]Repo, error)
-	Clone(ctx context.Context, git GitClient, repos []Repo, outDir string, shallow bool) error
 	FindRepos(ctx context.Context, opts FindRepoOpts) ([]Repo, error)
 }
 
 type GitHubClientProvider func(token string) GitHubClient
 
 type GitClient interface {
-	Clone(Repo, string, bool) error
+	Clone(ctx context.Context, repos []Repo, outDIr string, shallow bool) error
 }
 
 type RepoSelector interface {

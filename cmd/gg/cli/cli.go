@@ -10,7 +10,7 @@ import (
 	"github.com/joakimen/gg/github"
 	"github.com/joakimen/gg/githubapi"
 	"github.com/joakimen/gg/keyring"
-	"github.com/joakimen/gg/tty"
+	"github.com/joakimen/gg/prompt"
 	"github.com/spf13/cobra"
 )
 
@@ -22,7 +22,7 @@ func Run() error {
 func newRootCmd() *cobra.Command {
 	githubService := github.NewService(
 		keyring.New("github"),
-		tty.NewProvider(),
+		prompt.ReadPassword,
 		githubapi.TokenClientProvider,
 		git.NewClient(),
 		fuzzy.NewProvider(),

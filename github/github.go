@@ -10,9 +10,11 @@ import (
 	"github.com/joakimen/gg"
 )
 
+var _ gg.GitHubService = (*Service)(nil)
+
 type Service struct {
 	Keyring        gg.KeyringProvider
-	TTY            gg.TTYProvider
+	TokenReader    gg.InputReader
 	ClientProvider gg.GitHubClientProvider
 	Git            gg.GitClient
 	RepoSelector   gg.RepoSelector
@@ -20,14 +22,14 @@ type Service struct {
 
 func NewService(
 	keyring gg.KeyringProvider,
-	ttyProvider gg.TTYProvider,
+	tokenReader gg.InputReader,
 	clientProvider gg.GitHubClientProvider,
 	gitClient gg.GitClient,
 	repoFilter gg.RepoSelector,
 ) *Service {
 	return &Service{
 		Keyring:        keyring,
-		TTY:            ttyProvider,
+		TokenReader:    tokenReader,
 		RepoSelector:   repoFilter,
 		ClientProvider: clientProvider,
 		Git:            gitClient,
@@ -36,7 +38,8 @@ func NewService(
 
 func (s *Service) Login(ctx context.Context) error {
 	// read api token from user
-	token, err := s.TTY.Read("Enter your GitHub API token: ")
+	fmt.Println("Enter your GitHub API token: ")
+	token, err := s.TokenReader()
 	if err != nil {
 		return err
 	}
@@ -81,16 +84,7 @@ func (s *Service) Show(ctx context.Context) error {
 	return nil
 }
 
-type CloneFlags struct {
-	Owner           string
-	Repo            string
-	OutDir          string
-	Shallow         bool
-	RepoFile        string
-	IncludeArchived bool
-}
-
-func (s *Service) Clone(ctx context.Context, flags CloneFlags) error {
+func (s *Service) Clone(ctx context.Context, flags gg.CloneFlags) error {
 	var (
 		defaultGitHubUser = os.Getenv("GG_GITHUB_USER")
 		outDirEnv         = os.Getenv("GG_CLONE_DIR")
@@ -105,8 +99,8 @@ func (s *Service) Clone(ctx context.Context, flags CloneFlags) error {
 		return err
 	}
 
-	client := s.ClientProvider(token)
-	repos, err := client.FindRepos(
+	api := s.ClientProvider(token)
+	repos, err := api.FindRepos(
 		ctx, gg.FindRepoOpts{
 			RepoSelector:      s.RepoSelector,
 			Owner:             flags.Owner,
@@ -121,5 +115,5 @@ func (s *Service) Clone(ctx context.Context, flags CloneFlags) error {
 		return fmt.Errorf("failed to find repos to clone using the provided args: %w", err)
 	}
 
-	return client.Clone(ctx, s.Git, repos, outDir, flags.Shallow)
+	return s.Git.Clone(ctx, repos, outDir, flags.Shallow)
 }

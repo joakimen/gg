@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/google/go-github/v69/github"
@@ -99,55 +98,6 @@ func (c *Client) SearchRepositoriesByName(ctx context.Context, name string) ([]g
 		opts.Page = resp.NextPage
 	}
 	return allRepos, nil
-}
-
-func (c *Client) Clone(
-	ctx context.Context,
-	git gg.GitClient,
-	repos []gg.Repo,
-	outDir string,
-	shallow bool,
-) error {
-	slog.DebugContext(ctx, "cloning repositories")
-	if outDir == "" {
-		return fmt.Errorf("refusing to clone without a specified outDir")
-	}
-
-	if len(repos) == 0 {
-		return fmt.Errorf("no repos to clone")
-	}
-
-	fmt.Printf("cloning %d repos(s)..\n", len(repos))
-	slog.DebugContext(ctx, "cloning repos", "outDir", outDir, "repos", repos)
-
-	var wg sync.WaitGroup
-	resultChan := make(chan gg.CloneResult, len(repos))
-	for _, repo := range repos {
-		wg.Add(1)
-		go func(r gg.Repo) {
-			defer wg.Done()
-			cloneError := git.Clone(repo, outDir, shallow)
-			resultChan <- gg.CloneResult{Repo: r, Err: cloneError}
-		}(repo)
-	}
-	wg.Wait()
-	close(resultChan)
-	var errs []gg.CloneResult
-	for res := range resultChan {
-		if res.Err != nil {
-			errs = append(errs, res)
-		}
-	}
-
-	if len(errs) > 0 {
-		fmt.Fprintln(os.Stderr, "failed to clone some repos:")
-		for _, e := range errs {
-			fmt.Fprintf(os.Stderr, "- %s/%s: %v\n", e.Repo.Owner, e.Repo.Name, e.Err)
-		}
-	} else {
-		fmt.Println("all repos cloned successfully!")
-	}
-	return nil
 }
 
 func (c *Client) FindRepos(ctx context.Context, opts gg.FindRepoOpts) ([]gg.Repo, error) {
