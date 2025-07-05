@@ -1,4 +1,5 @@
-version: '3'
+---
+version: "3"
 
 vars:
   GOBIN:
@@ -13,8 +14,17 @@ vars:
 
 tasks:
   default:
-    desc: Default task (build)
-    deps: [build]
+    desc: Default task (all)
+    cmds:
+      - task: all
+
+  all:
+    desc: Run all build steps
+    cmds:
+      - task: fmt
+      - task: lint
+      - task: build
+      - task: test
 
   help:
     desc: Display this help
@@ -35,7 +45,6 @@ tasks:
 
   build:
     desc: Build the application
-    deps: [fmt, lint]
     cmds:
       - go build -o {{.BIN}} {{.MAINPRG}}
 
@@ -43,6 +52,17 @@ tasks:
     desc: Run tests
     cmds:
       - go test -v ./...
+
+  init:
+    desc: Initialize the project
+    cmds:
+      - task: install-tools
+
+  install-tools:
+    desc: Install Go tools
+    cmds:
+      - go install golang.org/x/tools/cmd/goimports@latest
+      - go install honnef.co/go/tools/cmd/staticcheck@latest
 
   release:
     desc: Create a new release tag
