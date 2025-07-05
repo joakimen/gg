@@ -11,7 +11,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: checkout
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -20,8 +21,15 @@ jobs:
         with:
           go-version-file: "go.mod"
 
-      - run: task init
-      - run: task all
+      - name: go - install tools
+        run: |
+          go install golang.org/x/tools/cmd/goimports@latest
+          go install honnef.co/go/tools/cmd/staticcheck@latest
+
+      - name: go - lint
+        run: |
+          go vet ./...
+          staticcheck ./...
 
       - name: release by tag
         if: startsWith(github.ref, 'refs/tags/')
