@@ -20,6 +20,9 @@ jobs:
         with:
           go-version-file: "go.mod"
 
+        # installs go-task to ./bin/task
+      - run: sh ./install-task.sh
+
       - run: task init
       - run: task all
 
