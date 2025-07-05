@@ -1,0 +1,67 @@
+version: '3'
+
+vars:
+  GOBIN:
+    sh: |
+      if [ -z "$(go env GOBIN)" ]; then
+        echo "$(go env GOPATH)/bin"
+      else
+        echo "$(go env GOBIN)"
+      fi
+  BIN: ./bin/gg
+  MAINPRG: ./cmd/gg
+
+tasks:
+  default:
+    desc: Default task (build)
+    deps: [build]
+
+  help:
+    desc: Display this help
+    cmds:
+      - task --list
+
+  fmt:
+    desc: Format Go code
+    cmds:
+      - gofumpt -l -w .
+      - goimports -w .
+
+  lint:
+    desc: Run linters
+    cmds:
+      - go vet ./...
+      - staticcheck ./...
+
+  build:
+    desc: Build the application
+    deps: [fmt, lint]
+    cmds:
+      - go build -o {{.BIN}} {{.MAINPRG}}
+
+  test:
+    desc: Run tests
+    cmds:
+      - go test -v ./...
+
+  release:
+    desc: Create a new release tag
+    preconditions:
+      - sh: command -v svu >/dev/null 2>&1
+        msg: "svu is not installed. Please install it first."
+    cmds:
+      - |
+        next_tag=$(svu next)
+        git tag $next_tag
+        echo "git tag $next_tag"
+      - git push --tags
+
+  mock:
+    desc: Generate mocks
+    cmds:
+      - mockery
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -rf {{.BIN}} ./dist
