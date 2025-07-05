@@ -41,6 +41,11 @@ release:
 	@next_tag=$$(svu next) && git tag $$next_tag && echo "git tag $$next_tag"
 	git push --tags
 
+.PHONY: install-tools
+install-tools:
+	go install golang.org/x/tools/cmd/goimports@latest
+	go install honnef.co/go/tools/cmd/staticcheck@latest
+
 .PHONY: mock
 mock:
 	mockery
@@ -48,7 +53,3 @@ mock:
 .PHONY: clean
 clean:
 	rm -rf $(BIN) ./dist
-
-.PHONY: download-github-api-spec
-download-github-api-spec:
-	curl -sL --create-dirs -o ./api-specs/api.github.com.json $(GH_API_SPEC)
