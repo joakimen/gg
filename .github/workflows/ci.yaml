@@ -7,9 +7,6 @@ on: push
 permissions:
   contents: write
 
-env:
-  GO_TASK: ./bin/task
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -26,8 +23,8 @@ jobs:
         # installs go-task to ./bin/task
       - run: sh ./install-task.sh
 
-      - run: $(GO_TASK) init
-      - run: $(GO_TASK) all
+      - run: task init
+      - run: task all
 
       - name: release by tag
         if: startsWith(github.ref, 'refs/tags/')
